@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
-  Wallet, ArrowDownUp, Star, Fuel, RefreshCw, Settings2, Shuffle,
+  Wallet, ArrowDownUp, Star, Fuel, RefreshCw, Settings2, Shuffle, Activity,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -17,6 +17,7 @@ import { SwapTab } from '@/components/kavach/swap';
 import { WatchlistTab } from '@/components/kavach/watchlist';
 import { GasTab } from '@/components/kavach/gas';
 import { PadaSankaraTab } from '@/components/kavach/padasankara';
+import { SignalTab } from '@/components/kavach/signal';
 import { SettingsSheet } from '@/components/kavach/settings';
 import { WalletListSheet } from '@/components/kavach/wallet-list';
 import { ReceiveSheet, Sheet } from '@/components/kavach/receive';
@@ -272,6 +273,7 @@ const App = () => {
                     prices={prices}
                   />
                 )}
+                {tab === 'signal' && <SignalTab />}
                 {tab === 'padasankara' && <PadaSankaraTab />}
                 {tab === 'watchlist' && <WatchlistTab />}
                 {tab === 'gas' && <GasTab prices={prices} />}
@@ -323,6 +325,7 @@ const App = () => {
 const BottomNav = ({ tab, setTab }) => {
   const items = [
     { id: 'portfolio', label: 'Home', icon: Wallet },
+    { id: 'signal', label: 'Signal', icon: Activity },
     { id: 'swap', label: 'Swap', icon: ArrowDownUp },
     { id: 'padasankara', label: 'Shuffle', icon: Shuffle },
     { id: 'watchlist', label: 'Watch', icon: Star },
@@ -331,18 +334,21 @@ const BottomNav = ({ tab, setTab }) => {
   return (
     <div className="fixed inset-x-0 bottom-0 z-40">
       <div className="mx-auto max-w-md border-t border-slate-800/70 bg-slate-950/95 px-1 backdrop-blur-md">
-        <div className="grid grid-cols-5">
+        <div className="grid grid-cols-6">
           {items.map((it) => {
             const active = tab === it.id;
             const Icon = it.icon;
             const isPS = it.id === 'padasankara';
+            const isSig = it.id === 'signal';
+            const activeColor = isPS ? 'text-fuchsia-400' : isSig ? 'text-cyan-400' : 'text-emerald-400';
+            const shadow = isPS ? 'drop-shadow-[0_0_8px_rgb(232,121,249)]' : isSig ? 'drop-shadow-[0_0_8px_rgb(34,211,238)]' : 'drop-shadow-[0_0_8px_rgb(52,211,153)]';
             return (
               <button
                 key={it.id}
                 onClick={() => setTab(it.id)}
-                className={`flex flex-col items-center gap-1 py-3 text-[10px] font-medium transition ${active ? (isPS ? 'text-fuchsia-400' : 'text-emerald-400') : 'text-slate-500 hover:text-slate-300'}`}
+                className={`flex flex-col items-center gap-1 py-3 text-[9px] font-medium transition ${active ? activeColor : 'text-slate-500 hover:text-slate-300'}`}
               >
-                <Icon className={`h-5 w-5 ${active ? (isPS ? 'drop-shadow-[0_0_8px_rgb(232,121,249)]' : 'drop-shadow-[0_0_8px_rgb(52,211,153)]') : ''}`} />
+                <Icon className={`h-5 w-5 ${active ? shadow : ''}`} />
                 <span className="uppercase tracking-wider">{it.label}</span>
               </button>
             );
