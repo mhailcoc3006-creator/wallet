@@ -2,81 +2,127 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Wallet, ArrowDownUp, Star, Fuel, RefreshCw, Eye, Settings2, Shuffle } from 'lucide-react';
+import {
+  Wallet, ArrowDownUp, Star, Fuel, RefreshCw, Settings2, Shuffle,
+} from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Brand } from '@/components/kavach/shared';
-import { Splash, Welcome, CreateWallet, BackupPhrase, ImportWallet } from '@/components/kavach/onboarding';
+import {
+  Splash, Welcome, CreateWallet, BackupPhrase, ImportWallet, SetupPassword,
+} from '@/components/kavach/onboarding';
+import { LockScreen } from '@/components/kavach/lock';
 import { PortfolioTab } from '@/components/kavach/portfolio';
 import { SwapTab } from '@/components/kavach/swap';
 import { WatchlistTab } from '@/components/kavach/watchlist';
 import { GasTab } from '@/components/kavach/gas';
 import { PadaSankaraTab } from '@/components/kavach/padasankara';
 import { SettingsSheet } from '@/components/kavach/settings';
+import { WalletListSheet } from '@/components/kavach/wallet-list';
 import { ReceiveSheet, Sheet } from '@/components/kavach/receive';
 import { SendSheet } from '@/components/kavach/send';
 
-import { useWalletStore } from '@/lib/store';
+import { useWalletStore, selectActiveWallet } from '@/lib/store';
+import { hasVault, initVault, saveVaultData, defaultState } from '@/lib/vault';
 import { deriveAllAddresses, fetchAllBalances } from '@/lib/wallet';
 import { CHAINS } from '@/lib/chains';
 import { Button } from '@/components/ui/button';
+import { Eye } from 'lucide-react';
 
 const App = () => {
-  const wallet = useWalletStore((s) => s.wallet);
-  const backupConfirmed = useWalletStore((s) => s.backupConfirmed);
-  const resetWallet = useWalletStore((s) => s.resetWallet);
-  const watchlist = useWalletStore((s) => s.watchlist);
+  const store = useWalletStore();
+  const activeWallet = selectActiveWallet(store);
 
-  const [view, setView] = useState('splash'); // splash | welcome | create | backup | import | app
+  // View state: splash | welcome | create | backup | import | setup-password | lock | app
+  const [view, setView] = useState('splash');
   const [pendingWallet, setPendingWallet] = useState(null);
   const [hydrated, setHydrated] = useState(false);
 
-  // App state
   const [tab, setTab] = useState('portfolio');
   const [addresses, setAddresses] = useState({});
   const [balances, setBalances] = useState({});
   const [prices, setPrices] = useState({});
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [hidden, setHidden] = useState(false);
 
-  // Modals
   const [showSend, setShowSend] = useState(false);
   const [showReceive, setShowReceive] = useState(false);
   const [showPhrase, setShowPhrase] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showWalletList, setShowWalletList] = useState(false);
 
+  // Splash → route to lock or welcome
   useEffect(() => {
     setHydrated(true);
     const t = setTimeout(() => {
-      if (wallet && backupConfirmed) setView('app');
+      if (store.unlocked) setView('app');
+      else if (hasVault()) setView('lock');
       else setView('welcome');
-    }, 1300);
+    }, 1200);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Derive addresses when wallet available
+  // Auto-save vault (debounced) on state changes while unlocked
   useEffect(() => {
-    if (!wallet?.mnemonic) return;
+    if (!store.unlocked || !store.vaultKey) return;
+    let timer;
+    const unsub = useWalletStore.subscribe((s, prev) => {
+      // Save only if persistable state changed
+      if (
+        s.wallets === prev.wallets &&
+        s.activeWalletId === prev.activeWalletId &&
+        s.watchlist === prev.watchlist &&
+        s.alerts === prev.alerts &&
+        s.padasankara === prev.padasankara
+      ) return;
+      clearTimeout(timer);
+      timer = setTimeout(async () => {
+        try {
+          const cur = useWalletStore.getState();
+          await saveVaultData(
+            {
+              wallets: cur.wallets,
+              activeWalletId: cur.activeWalletId,
+              watchlist: cur.watchlist,
+              alerts: cur.alerts,
+              padasankara: cur.padasankara,
+            },
+            cur.vaultKey
+          );
+        } catch (e) {
+          console.error('vault save failed', e);
+        }
+      }, 400);
+    });
+    return () => {
+      unsub();
+      clearTimeout(timer);
+    };
+  }, [store.unlocked, store.vaultKey]);
+
+  // Derive addresses for active wallet
+  useEffect(() => {
+    if (!activeWallet?.mnemonic) {
+      setAddresses({});
+      return;
+    }
     try {
-      const map = deriveAllAddresses(wallet.mnemonic);
-      setAddresses(map);
+      setAddresses(deriveAllAddresses(activeWallet.mnemonic));
     } catch (e) {
       toast.error('Gagal derive alamat: ' + e.message);
     }
-  }, [wallet?.mnemonic]);
+  }, [activeWallet?.mnemonic]);
 
   const loadData = async (silent = false) => {
     if (!Object.keys(addresses).length) return;
     if (!silent) setLoading(true);
     setRefreshing(true);
     try {
-      // Merge chain ids + watchlist ids for prices
       const chainIds = CHAINS.map((c) => c.coinGeckoId);
-      const watchIds = watchlist.map((w) => w.id);
+      const watchIds = store.watchlist.map((w) => w.id);
       const allIds = Array.from(new Set([...chainIds, ...watchIds]));
-
       const [bal, priceRes] = await Promise.all([
         fetchAllBalances(addresses),
         fetch(`/api/prices?ids=${allIds.join(',')}`).then((r) => r.json()).catch(() => ({ prices: {} })),
@@ -104,12 +150,36 @@ const App = () => {
     }, 0);
   }, [balances, prices]);
 
-  const handleLogout = () => {
-    if (typeof window !== 'undefined' && window.confirm('Yakin ingin keluar? Pastikan recovery phrase Anda sudah tersimpan!')) {
-      resetWallet();
-      setView('welcome');
-      setAddresses({}); setBalances({}); setPrices({});
-    }
+  // Save portfolio USD to active wallet
+  useEffect(() => {
+    if (!activeWallet || loading || totalUsd === 0) return;
+    if (Math.abs((activeWallet.portfolioUsd || 0) - totalUsd) < 0.01) return;
+    store.updateWalletPortfolio(activeWallet.id, totalUsd);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [totalUsd, loading]);
+
+  // Onboarding flow completion
+  const handleOnboardingComplete = async ({ userName, password }) => {
+    if (!pendingWallet) throw new Error('No wallet');
+    const initial = defaultState();
+    const walletId = crypto.randomUUID();
+    initial.wallets = [
+      {
+        id: walletId,
+        name: 'Main Wallet',
+        mnemonic: pendingWallet.mnemonic,
+        address: pendingWallet.address,
+        createdAt: Date.now(),
+        source: pendingWallet.source || 'created',
+        portfolioUsd: 0,
+        portfolioUpdatedAt: 0,
+      },
+    ];
+    initial.activeWalletId = walletId;
+    const { key, state, meta } = await initVault({ userName, password, initialState: initial });
+    useWalletStore.getState().hydrate({ state, key, meta });
+    setPendingWallet(null);
+    setView('app');
   };
 
   if (!hydrated || view === 'splash') return <Splash />;
@@ -117,18 +187,52 @@ const App = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
       <AnimatePresence mode="wait">
-        {view === 'welcome' && <Welcome key="welcome" onCreate={() => setView('create')} onImport={() => setView('import')} />}
+        {view === 'lock' && (
+          <LockScreen
+            key="lock"
+            onUnlocked={() => setView('app')}
+            onReset={() => setView('welcome')}
+          />
+        )}
+        {view === 'welcome' && (
+          <Welcome
+            key="welcome"
+            onCreate={() => setView('create')}
+            onImport={() => setView('import')}
+          />
+        )}
         {view === 'create' && (
-          <CreateWallet key="create" onBack={() => setView('welcome')} onGenerated={(w) => { setPendingWallet(w); setView('backup'); }} />
+          <CreateWallet
+            key="create"
+            onBack={() => setView('welcome')}
+            onGenerated={(w) => { setPendingWallet({ ...w, source: 'created' }); setView('backup'); }}
+          />
         )}
         {view === 'backup' && pendingWallet && (
-          <BackupPhrase key="backup" wallet={pendingWallet} onDone={() => { setPendingWallet(null); setView('app'); }} onBack={() => setView('welcome')} />
+          <BackupPhrase
+            key="backup"
+            wallet={pendingWallet}
+            onBack={() => setView('welcome')}
+            onDone={() => setView('setup-password')}
+          />
         )}
-        {view === 'import' && <ImportWallet key="import" onBack={() => setView('welcome')} onImported={() => setView('app')} />}
+        {view === 'import' && (
+          <ImportWallet
+            key="import"
+            onBack={() => setView('welcome')}
+            onImported={(w) => { setPendingWallet({ ...w, source: 'imported' }); setView('setup-password'); }}
+          />
+        )}
+        {view === 'setup-password' && (
+          <SetupPassword
+            key="setup"
+            onBack={() => setView('welcome')}
+            onDone={handleOnboardingComplete}
+          />
+        )}
 
         {view === 'app' && (
           <motion.div key="app" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mx-auto max-w-md px-5 pb-24 pt-6">
-            {/* Top bar */}
             <div className="mb-5 flex items-center justify-between">
               <Brand size={36} />
               <div className="flex gap-1">
@@ -141,11 +245,12 @@ const App = () => {
               </div>
             </div>
 
-            {/* Tab content */}
             <AnimatePresence mode="wait">
               <motion.div key={tab} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.15 }}>
                 {tab === 'portfolio' && (
                   <PortfolioTab
+                    activeWallet={activeWallet}
+                    walletCount={store.wallets.length}
                     addresses={addresses}
                     balances={balances}
                     prices={prices}
@@ -156,25 +261,31 @@ const App = () => {
                     onSend={() => setShowSend(true)}
                     onReceive={() => setShowReceive(true)}
                     onOpenPhrase={() => setShowPhrase(true)}
+                    onOpenWalletList={() => setShowWalletList(true)}
                   />
                 )}
-                {tab === 'swap' && <SwapTab mnemonic={wallet?.mnemonic} addresses={addresses} balances={balances} prices={prices} />}
+                {tab === 'swap' && (
+                  <SwapTab
+                    mnemonic={activeWallet?.mnemonic}
+                    addresses={addresses}
+                    balances={balances}
+                    prices={prices}
+                  />
+                )}
                 {tab === 'padasankara' && <PadaSankaraTab />}
                 {tab === 'watchlist' && <WatchlistTab />}
                 {tab === 'gas' && <GasTab prices={prices} />}
               </motion.div>
             </AnimatePresence>
 
-            {/* Bottom nav */}
             <BottomNav tab={tab} setTab={setTab} />
 
-            {/* Modals */}
             {showSend && (
               <SendSheet
                 addresses={addresses}
                 balances={balances}
                 prices={prices}
-                mnemonic={wallet?.mnemonic}
+                mnemonic={activeWallet?.mnemonic}
                 onClose={() => { setShowSend(false); loadData(true); }}
               />
             )}
@@ -182,15 +293,23 @@ const App = () => {
               <ReceiveSheet addresses={addresses} onClose={() => setShowReceive(false)} />
             )}
             {showPhrase && (
-              <RevealPhraseModal mnemonic={wallet?.mnemonic} onClose={() => setShowPhrase(false)} />
+              <RevealPhraseModal mnemonic={activeWallet?.mnemonic} onClose={() => setShowPhrase(false)} />
+            )}
+            {showWalletList && (
+              <WalletListSheet prices={prices} onClose={() => setShowWalletList(false)} />
             )}
             {showSettings && (
               <SettingsSheet
                 onClose={() => setShowSettings(false)}
                 onWalletChanged={() => {
-                  // wallet changed \u2014 reset local state to trigger reload
-                  setAddresses({}); setBalances({}); setPrices({});
+                  setAddresses({});
+                  setBalances({});
                   setTab('portfolio');
+                }}
+                onLock={() => setView('lock')}
+                onFullReset={() => {
+                  setAddresses({}); setBalances({}); setPrices({});
+                  setView('welcome');
                 }}
               />
             )}
@@ -216,13 +335,14 @@ const BottomNav = ({ tab, setTab }) => {
           {items.map((it) => {
             const active = tab === it.id;
             const Icon = it.icon;
+            const isPS = it.id === 'padasankara';
             return (
               <button
                 key={it.id}
                 onClick={() => setTab(it.id)}
-                className={`flex flex-col items-center gap-1 py-3 text-[10px] font-medium transition ${active ? (it.id === 'padasankara' ? 'text-fuchsia-400' : 'text-emerald-400') : 'text-slate-500 hover:text-slate-300'}`}
+                className={`flex flex-col items-center gap-1 py-3 text-[10px] font-medium transition ${active ? (isPS ? 'text-fuchsia-400' : 'text-emerald-400') : 'text-slate-500 hover:text-slate-300'}`}
               >
-                <Icon className={`h-5 w-5 ${active ? (it.id === 'padasankara' ? 'drop-shadow-[0_0_8px_rgb(232,121,249)]' : 'drop-shadow-[0_0_8px_rgb(52,211,153)]') : ''}`} />
+                <Icon className={`h-5 w-5 ${active ? (isPS ? 'drop-shadow-[0_0_8px_rgb(232,121,249)]' : 'drop-shadow-[0_0_8px_rgb(52,211,153)]') : ''}`} />
                 <span className="uppercase tracking-wider">{it.label}</span>
               </button>
             );
@@ -235,12 +355,12 @@ const BottomNav = ({ tab, setTab }) => {
 
 const RevealPhraseModal = ({ mnemonic, onClose }) => {
   const [revealed, setRevealed] = useState(false);
-  const words = mnemonic?.split(' ') || [];
+  const words = (mnemonic || '').split(' ');
   const copy = async () => { await navigator.clipboard.writeText(mnemonic); toast.success('Recovery phrase disalin.'); };
   return (
     <Sheet onClose={onClose}>
       <div className="mb-1 text-lg font-bold text-white">Recovery Phrase</div>
-      <p className="mb-4 text-xs text-slate-400">Jangan pernah bagikan. Siapa pun yang tahu 12 kata ini menguasai wallet Anda.</p>
+      <p className="mb-4 text-xs text-slate-400">Jangan bagikan. Siapa pun yang tahu kata-kata ini menguasai wallet Anda.</p>
       <div className="relative">
         {!revealed && (
           <button onClick={() => setRevealed(true)} className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 rounded-2xl bg-slate-900/95 backdrop-blur-sm">

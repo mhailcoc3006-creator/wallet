@@ -1,57 +1,71 @@
 'use client';
 
-// Settings sheet: View phrase, Import different wallet, Delete wallet.
+// Settings sheet: view phrase, tambah wallet, ganti password, hapus semua data.
 import { useState } from 'react';
 import {
-  Settings2, KeyRound, Download, Trash2, X, Eye, EyeOff, Copy, AlertTriangle, ArrowLeft, RefreshCw,
+  Settings2, KeyRound, Download, Trash2, X, Eye, EyeOff, Copy,
+  AlertTriangle, ArrowLeft, RefreshCw, Lock, User, Wallet as WalletIcon,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { Sheet } from './receive';
-import { useWalletStore } from '@/lib/store';
+import { useWalletStore, selectActiveWallet } from '@/lib/store';
 import { importFromMnemonic } from '@/lib/wallet';
+import { clearVault } from '@/lib/vault';
 import { shortAddr } from './shared';
 
-export const SettingsSheet = ({ onClose, onWalletChanged }) => {
-  const wallet = useWalletStore((s) => s.wallet);
-  const resetWallet = useWalletStore((s) => s.resetWallet);
+export const SettingsSheet = ({ onClose, onWalletChanged, onFullReset, onLock }) => {
+  const store = useWalletStore();
+  const active = selectActiveWallet(store);
 
-  const [screen, setScreen] = useState('menu'); // menu | phrase | import | delete
+  const [screen, setScreen] = useState('menu');
 
-  if (screen === 'phrase') return <RevealPhraseInline mnemonic={wallet?.mnemonic} onBack={() => setScreen('menu')} onClose={onClose} />;
+  if (screen === 'phrase') return <RevealPhraseInline mnemonic={active?.mnemonic} onBack={() => setScreen('menu')} onClose={onClose} />;
   if (screen === 'import') return <ImportInline onBack={() => setScreen('menu')} onDone={() => { onClose(); onWalletChanged?.(); }} />;
-  if (screen === 'delete') return <DeleteInline onBack={() => setScreen('menu')} onConfirm={() => { resetWallet(); onClose(); onWalletChanged?.(); }} />;
+  if (screen === 'delete-all') return <DeleteAllInline onBack={() => setScreen('menu')} onConfirm={() => { clearVault(); useWalletStore.getState().lock(); useWalletStore.getState().removeAllWallets(); onClose(); onFullReset?.(); }} />;
 
   return (
     <Sheet onClose={onClose}>
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Settings2 className="h-5 w-5 text-emerald-400" />
-          <div className="text-lg font-bold text-white">Pengaturan Wallet</div>
+          <div className="text-lg font-bold text-white">Pengaturan</div>
         </div>
         <button onClick={onClose} className="rounded-full p-1 text-slate-400 hover:text-white"><X className="h-5 w-5" /></button>
       </div>
 
       <div className="mb-4 rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
-        <div className="text-[10px] uppercase tracking-widest text-slate-500">Wallet Aktif</div>
-        <div className="mt-1 text-sm font-semibold text-white">{wallet?.name || 'Main Wallet'}</div>
-        <div className="mt-0.5 font-mono text-xs text-slate-400">{shortAddr(wallet?.address, 10, 8)}</div>
+        <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-slate-500">
+          <User className="h-3 w-3" />
+          Akun
+        </div>
+        <div className="mt-1 text-sm font-semibold text-white">{store.userName || 'User'}</div>
+        <div className="mt-0.5 flex items-center gap-2 text-xs text-slate-400">
+          <WalletIcon className="h-3 w-3" />
+          <span>{store.wallets.length} wallet aktif</span>
+        </div>
+        {active && (
+          <div className="mt-2 font-mono text-[10px] text-slate-500">{shortAddr(active.address, 10, 8)}</div>
+        )}
       </div>
 
       <div className="space-y-2">
-        <MenuItem icon={KeyRound} title="Lihat Recovery Phrase" desc="Tampilkan 12 kata cadangan Anda" onClick={() => setScreen('phrase')} />
-        <MenuItem icon={Download} title="Import Wallet Lain" desc="Ganti wallet aktif dengan phrase yang berbeda" onClick={() => setScreen('import')} />
-        <MenuItem icon={Trash2} title="Hapus Wallet" desc="Hapus semua data lokal dari device" danger onClick={() => setScreen('delete')} />
+        <MenuItem icon={KeyRound} title="Lihat Recovery Phrase" desc="Backup wallet aktif Anda" onClick={() => setScreen('phrase')} disabled={!active} />
+        <MenuItem icon={Download} title="Import Wallet Lain" desc="Tambah wallet baru (tidak menggantikan yang ada)" onClick={() => setScreen('import')} />
+        <MenuItem icon={Lock} title="Kunci Vault" desc="Logout — butuh password untuk unlock lagi" onClick={() => { useWalletStore.getState().lock(); onClose(); onLock?.(); }} />
+        <MenuItem icon={Trash2} title="Hapus Semua Data" desc="Hapus vault + semua wallet dari device" danger onClick={() => setScreen('delete-all')} />
       </div>
     </Sheet>
   );
 };
 
-const MenuItem = ({ icon: Icon, title, desc, danger, onClick }) => (
+const MenuItem = ({ icon: Icon, title, desc, danger, onClick, disabled }) => (
   <button
     onClick={onClick}
-    className={`flex w-full items-center gap-3 rounded-2xl border p-4 text-left transition ${danger ? 'border-red-500/20 bg-red-500/5 hover:bg-red-500/10' : 'border-slate-800 bg-slate-900/60 hover:bg-slate-900'}`}
+    disabled={disabled}
+    className={`flex w-full items-center gap-3 rounded-2xl border p-4 text-left transition disabled:opacity-40 ${danger ? 'border-red-500/20 bg-red-500/5 hover:bg-red-500/10' : 'border-slate-800 bg-slate-900/60 hover:bg-slate-900'}`}
   >
     <div className={`rounded-xl p-2 ${danger ? 'bg-red-500/20 text-red-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
       <Icon className="h-4 w-4" />
@@ -82,7 +96,7 @@ const RevealPhraseInline = ({ mnemonic, onBack, onClose }) => {
   const copy = async () => { await navigator.clipboard.writeText(mnemonic); toast.success('Recovery phrase disalin.'); };
   return (
     <Sheet onClose={onClose}>
-      <InlineHeader title="Recovery Phrase" subtitle="Jangan bagikan phrase ini kepada siapa pun." onBack={onBack} onClose={onClose} />
+      <InlineHeader title="Recovery Phrase" subtitle="Jangan bagikan kepada siapapun." onBack={onBack} onClose={onClose} />
       <div className="relative">
         {!revealed && (
           <button onClick={() => setRevealed(true)} className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 rounded-2xl bg-slate-900/95 backdrop-blur-sm">
@@ -101,7 +115,7 @@ const RevealPhraseInline = ({ mnemonic, onBack, onClose }) => {
       </div>
       <div className="mt-4 flex gap-2">
         <Button variant="outline" onClick={copy} disabled={!revealed} className="flex-1 border-slate-700 bg-slate-900/60 text-slate-200 hover:bg-slate-800"><Copy className="mr-2 h-4 w-4" /> Salin</Button>
-        <Button onClick={() => setRevealed(false)} variant="outline" className="border-slate-700 bg-slate-900/60 text-slate-200 hover:bg-slate-800"><EyeOff className="h-4 w-4" /></Button>
+        <Button variant="outline" onClick={() => setRevealed(false)} className="border-slate-700 bg-slate-900/60 text-slate-200 hover:bg-slate-800"><EyeOff className="h-4 w-4" /></Button>
       </div>
     </Sheet>
   );
@@ -109,65 +123,66 @@ const RevealPhraseInline = ({ mnemonic, onBack, onClose }) => {
 
 const ImportInline = ({ onBack, onDone }) => {
   const [phrase, setPhrase] = useState('');
+  const [name, setName] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handle = async () => {
-    if (typeof window !== 'undefined' && !window.confirm('Wallet aktif Anda saat ini akan DIGANTIKAN. Pastikan Anda sudah backup phrase saat ini. Lanjutkan?')) return;
     setError(''); setLoading(true);
     try {
       await new Promise((r) => setTimeout(r, 200));
       const w = importFromMnemonic(phrase);
-      useWalletStore.getState().setWallet({ mnemonic: w.mnemonic, address: w.address });
-      useWalletStore.getState().confirmBackup();
-      toast.success('Wallet berhasil di-import.');
+      const added = useWalletStore.getState().addWallet({ mnemonic: w.mnemonic, address: w.address, name: name.trim() || undefined, source: 'imported' });
+      if (!added) { setError('Wallet ini sudah ada.'); setLoading(false); return; }
+      useWalletStore.getState().setActiveWallet(added.id);
+      toast.success('Wallet ditambahkan & aktif.');
       onDone();
-    } catch (e) {
-      setError(e.message || 'Recovery phrase tidak valid.');
-    }
+    } catch (e) { setError(e.message || 'Recovery phrase tidak valid.'); }
     setLoading(false);
   };
 
   return (
     <Sheet onClose={onBack}>
-      <InlineHeader title="Import Wallet Lain" subtitle="Ganti wallet aktif dengan phrase berbeda. Data diproses lokal." onBack={onBack} onClose={onBack} />
-      <Textarea value={phrase} onChange={(e) => { setPhrase(e.target.value); setError(''); }} placeholder="Ketik 12/24 kata recovery phrase..." className="min-h-[140px] resize-none rounded-2xl border-slate-700 bg-slate-900/70 text-sm text-white placeholder:text-slate-500 focus-visible:ring-emerald-500" />
+      <InlineHeader title="Import Wallet Lain" subtitle="Tambahkan wallet baru. Wallet yang sudah ada TIDAK diganti." onBack={onBack} onClose={onBack} />
+      <div className="mb-3">
+        <div className="mb-1 text-[10px] uppercase tracking-widest text-slate-500">Nama (opsional)</div>
+        <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="cth: Trading Wallet" className="h-11 rounded-xl border-slate-700 bg-slate-900/70 text-sm text-white" />
+      </div>
+      <div className="mb-1 text-[10px] uppercase tracking-widest text-slate-500">Recovery phrase</div>
+      <Textarea value={phrase} onChange={(e) => { setPhrase(e.target.value); setError(''); }} placeholder="Ketik 12/24 kata..." className="min-h-[120px] resize-none rounded-2xl border-slate-700 bg-slate-900/70 text-sm text-white placeholder:text-slate-500 focus-visible:ring-emerald-500" />
       {error && (
         <div className="mt-3 flex items-start gap-2 rounded-xl border border-red-500/30 bg-red-500/10 p-3">
           <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-red-400" />
           <p className="text-xs text-red-200">{error}</p>
         </div>
       )}
-      <div className="mt-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-[11px] leading-relaxed text-amber-200">
-        &#9888;&#65039; Wallet aktif saat ini akan digantikan. Pastikan Anda sudah menyimpan recovery phrase yang sekarang.
-      </div>
       <Button onClick={handle} disabled={loading || !phrase.trim()} className="mt-5 h-13 w-full rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 py-3 text-base font-semibold text-white hover:from-emerald-400 hover:to-teal-400 disabled:opacity-40">
-        {loading ? <><RefreshCw className="mr-2 h-4 w-4 animate-spin" /> Memvalidasi...</> : <>Import & Ganti Wallet</>}
+        {loading ? <><RefreshCw className="mr-2 h-4 w-4 animate-spin" /> Menambah...</> : <>Tambah Wallet</>}
       </Button>
     </Sheet>
   );
 };
 
-const DeleteInline = ({ onBack, onConfirm }) => {
+const DeleteAllInline = ({ onBack, onConfirm }) => {
   const [confirmText, setConfirmText] = useState('');
-  const canDelete = confirmText.trim().toUpperCase() === 'HAPUS';
+  const canDelete = confirmText.trim().toUpperCase() === 'HAPUS SEMUA';
   return (
     <Sheet onClose={onBack}>
-      <InlineHeader title="Hapus Wallet" subtitle="Tindakan ini tidak dapat dibatalkan." onBack={onBack} onClose={onBack} />
+      <InlineHeader title="Hapus Semua Data" subtitle="Vault dan seluruh wallet akan dihapus dari device." onBack={onBack} onClose={onBack} />
       <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-xs leading-relaxed text-red-200">
-        Semua data wallet akan dihapus dari localStorage device ini. Anda TIDAK akan bisa masuk kembali tanpa recovery phrase.
+        Semua data terenkripsi (vault, wallet, watchlist, PadaSankara) akan dihapus dari device ini. Untuk memulihkan wallet, Anda butuh recovery phrase.
         <br /><br />
-        &#9888;&#65039; Pastikan Anda sudah menyimpan 12 kata recovery phrase Anda di tempat yang aman.
+        &#9888;&#65039; Pastikan Anda punya recovery phrase untuk semua wallet yang bernilai.
       </div>
-      <div className="mt-4 text-xs uppercase tracking-widest text-slate-500">Ketik <span className="font-bold text-red-400">HAPUS</span> untuk konfirmasi</div>
+      <div className="mt-4 text-xs uppercase tracking-widest text-slate-500">Ketik <span className="font-bold text-red-400">HAPUS SEMUA</span> untuk konfirmasi</div>
       <input
         value={confirmText}
         onChange={(e) => setConfirmText(e.target.value)}
-        placeholder="HAPUS"
+        placeholder="HAPUS SEMUA"
         className="mt-2 h-12 w-full rounded-xl border border-slate-700 bg-slate-900/70 px-4 font-mono text-sm uppercase text-white placeholder:text-slate-600 focus:border-red-500 focus:outline-none"
       />
       <Button onClick={onConfirm} disabled={!canDelete} className="mt-5 h-13 w-full rounded-2xl bg-red-500 py-3 text-base font-semibold text-white hover:bg-red-600 disabled:opacity-40">
-        <Trash2 className="mr-2 h-4 w-4" /> Hapus Wallet Sekarang
+        <Trash2 className="mr-2 h-4 w-4" /> Hapus Semua Sekarang
       </Button>
     </Sheet>
   );

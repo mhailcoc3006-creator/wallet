@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Eye, EyeOff, Copy, Send, QrCode, KeyRound } from 'lucide-react';
+import { Eye, EyeOff, Copy, Send, QrCode, KeyRound, ChevronDown, Sparkles, Wallet } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -11,10 +11,10 @@ import { CHAINS } from '@/lib/chains';
 import { ChainIcon, fmtUsd, fmtNum, shortAddr } from './shared';
 
 export const PortfolioTab = ({
-  addresses, balances, prices, loading, totalUsd, hidden, setHidden,
-  onSend, onReceive, onOpenPhrase,
+  activeWallet, walletCount, addresses, balances, prices, loading, totalUsd, hidden, setHidden,
+  onSend, onReceive, onOpenPhrase, onOpenWalletList,
 }) => {
-  const primaryAddress = addresses?.ethereum;
+  const primaryAddress = addresses?.ethereum || activeWallet?.address;
 
   const copyAddress = async (addr) => {
     await navigator.clipboard.writeText(addr);
@@ -23,12 +23,26 @@ export const PortfolioTab = ({
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
+      {/* Wallet header — switcher */}
+      <button onClick={onOpenWalletList} className="flex w-full items-center justify-between rounded-xl border border-slate-800 bg-slate-900/60 px-3 py-2.5 text-left hover:bg-slate-900">
+        <div className="flex items-center gap-2">
+          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-300">
+            {activeWallet?.source === 'padasankara' ? <Sparkles className="h-3.5 w-3.5" /> : <Wallet className="h-3.5 w-3.5" />}
+          </div>
+          <div className="min-w-0">
+            <div className="truncate text-sm font-semibold text-white">{activeWallet?.name || 'No wallet'}</div>
+            <div className="text-[10px] text-slate-500">{walletCount} wallet total • ketuk untuk switch</div>
+          </div>
+        </div>
+        <ChevronDown className="h-4 w-4 text-slate-500" />
+      </button>
+
       {/* Portfolio card */}
       <Card className="relative overflow-hidden border-slate-800 bg-gradient-to-br from-slate-900 via-slate-900 to-emerald-950 p-6">
         <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-emerald-500/20 blur-3xl" />
         <div className="relative">
           <div className="flex items-center justify-between">
-            <span className="text-xs uppercase tracking-widest text-slate-400">Total Portfolio</span>
+            <span className="text-xs uppercase tracking-widest text-slate-400">Portfolio Aktif</span>
             <button onClick={() => setHidden(!hidden)} className="text-slate-400 hover:text-white">
               {hidden ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
@@ -52,10 +66,10 @@ export const PortfolioTab = ({
           </div>
 
           <div className="mt-5 grid grid-cols-2 gap-2">
-            <Button onClick={onSend} className="h-11 rounded-xl bg-emerald-500/20 text-emerald-100 hover:bg-emerald-500/30">
+            <Button onClick={onSend} disabled={!activeWallet} className="h-11 rounded-xl bg-emerald-500/20 text-emerald-100 hover:bg-emerald-500/30 disabled:opacity-40">
               <Send className="mr-2 h-4 w-4" /> Kirim
             </Button>
-            <Button onClick={onReceive} className="h-11 rounded-xl bg-slate-800 text-slate-100 hover:bg-slate-700">
+            <Button onClick={onReceive} disabled={!activeWallet} className="h-11 rounded-xl bg-slate-800 text-slate-100 hover:bg-slate-700 disabled:opacity-40">
               <QrCode className="mr-2 h-4 w-4" /> Terima
             </Button>
           </div>
@@ -71,31 +85,25 @@ export const PortfolioTab = ({
         <div className="space-y-2">
           {CHAINS.map((chain, idx) => (
             <ChainRow
-              key={chain.id}
-              chain={chain}
+              key={chain.id} chain={chain}
               address={addresses?.[chain.id]}
               balance={balances?.[chain.id]}
               price={prices?.[chain.coinGeckoId]?.usd}
               change24h={prices?.[chain.coinGeckoId]?.usd_24h_change}
-              loading={loading}
-              hidden={hidden}
-              index={idx}
-              onReceive={onReceive}
-              onSend={onSend}
+              loading={loading} hidden={hidden} index={idx}
             />
           ))}
         </div>
       </div>
 
-      {/* Backup access */}
       <Card className="border-slate-800 bg-slate-900/60 p-4">
         <div className="flex items-center gap-3">
           <KeyRound className="h-5 w-5 flex-shrink-0 text-emerald-400" />
           <div className="flex-1">
             <div className="text-sm font-semibold text-white">Recovery Phrase</div>
-            <div className="text-xs text-slate-400">Cadangan wallet. Simpan offline.</div>
+            <div className="text-xs text-slate-400">Backup wallet aktif. Simpan offline.</div>
           </div>
-          <Button size="sm" variant="outline" onClick={onOpenPhrase} className="border-slate-700 bg-slate-800/60 text-white hover:bg-slate-700">
+          <Button size="sm" variant="outline" onClick={onOpenPhrase} disabled={!activeWallet} className="border-slate-700 bg-slate-800/60 text-white hover:bg-slate-700">
             Lihat
           </Button>
         </div>
@@ -129,20 +137,11 @@ const ChainRow = ({ chain, address, balance, price, change24h, loading, hidden, 
         </div>
         <div className="flex-shrink-0 text-right">
           {loading ? (
-            <>
-              <Skeleton className="mb-1 h-4 w-16 bg-slate-800" />
-              <Skeleton className="h-3 w-12 bg-slate-800" />
-            </>
+            <><Skeleton className="mb-1 h-4 w-16 bg-slate-800" /><Skeleton className="h-3 w-12 bg-slate-800" /></>
           ) : hidden ? (
-            <>
-              <div className="text-sm font-semibold text-white">••••</div>
-              <div className="text-xs text-slate-500">••</div>
-            </>
+            <><div className="text-sm font-semibold text-white">••••</div><div className="text-xs text-slate-500">••</div></>
           ) : (
-            <>
-              <div className="text-sm font-semibold text-white">{fmtNum(balNum)}</div>
-              <div className="text-xs text-slate-500">{fmtUsd(usd)}</div>
-            </>
+            <><div className="text-sm font-semibold text-white">{fmtNum(balNum)}</div><div className="text-xs text-slate-500">{fmtUsd(usd)}</div></>
           )}
         </div>
       </Card>
