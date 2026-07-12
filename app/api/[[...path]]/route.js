@@ -97,6 +97,99 @@ async function fetchGasEvm() {
   return results;
 }
 
+async function fetchPairs() {
+  const cacheKey = 'signal:pairs';
+  const cached = getCached(cacheKey);
+  if (cached) return cached;
+
+  const res = await fetch(`${OKX_API}/api/v5/market/tickers?instType=SWAP`);
+  if (!res.ok) throw new Error(`OKX tickers HTTP ${res.status}`);
+  const j = await res.json();
+  if (j.code !== '0') throw new Error(`OKX tickers ${j.msg || 'error'}`);
+
+  const pairs = (j.data || [])
+    .filter((row) => row.instId && row.instId.endsWith('-USDT-SWAP'))
+    .map((row) => {
+      const base = row.instId.replace('-USDT-SWAP', '');
+      const last = parseFloat(row.last) || 0;
+      const open24 = parseFloat(row.open24h) || 0;
+      const changePct = open24 > 0 ? ((last - open24) / open24) * 100 : 0;
+      const volCoin = parseFloat(row.volCcy24h) || 0;
+      return {
+        symbol: `${base}USDT`,
+        base,
+        instId: row.instId,
+        price: last,
+        change24h: changePct,
+        vol24h_usd: volCoin * last,
+        high24h: parseFloat(row.high24h) || 0,
+        low24h: parseFloat(row.low24h) || 0,
+      };
+    })
+    .sort((a, b) => b.vol24h_usd - a.vol24h_usd);
+
+  setCached(cacheKey, pairs, 60 * 1000);
+  return pairs;
+}
+
+async function scanPairs(interval, limit) {
+  const cacheKey = `signal:scan:${interval}:${limit}`;
+  const cached = getCached(cacheKey);
+  if (cached) return cached;
+
+  const pairs = await fetchPairs();
+  const topN = pairs.slice(0, limit);
+
+  // Batch in chunks of 5 concurrent to avoid OKX rate limit.
+  const BATCH = 5;
+  const results = [];
+  for (let i = 0; i < topN.length; i += BATCH) {
+    const chunk = topN.slice(i, i + BATCH);
+    const chunkResults = await Promise.all(
+      chunk.map(async (p) => {
+        try {
+          const sig = await fetchSignal(p.symbol, interval);
+          return {
+            symbol: p.symbol,
+            price: p.price,
+            change24h: p.change24h,
+            vol24h_usd: p.vol24h_usd,
+            signal: sig.signal,
+            side: sig.side,
+            grade: sig.grade,
+            confidence: sig.confidence,
+            probability: sig.probability,
+            risk: sig.risk,
+            leverage: sig.leverage,
+            entry: sig.entry,
+            tp1: sig.tp1,
+            tp2: sig.tp2,
+            tp3: sig.tp3,
+            stop_loss: sig.stop_loss,
+            risk_reward: sig.risk_reward,
+            scores: sig.scores,
+          };
+        } catch (e) {
+          return { symbol: p.symbol, error: e.message };
+        }
+      })
+    );
+    results.push(...chunkResults);
+  }
+
+  // Sort by confidence desc (put A+/A grade tradeable signals first).
+  results.sort((a, b) => {
+    const aSide = a.side && a.side !== 'none' ? 1 : 0;
+    const bSide = b.side && b.side !== 'none' ? 1 : 0;
+    if (aSide !== bSide) return bSide - aSide;
+    return (b.confidence || 0) - (a.confidence || 0);
+  });
+
+  const out = { interval, count: results.length, results, generated_at: Date.now() };
+  setCached(cacheKey, out, 30 * 1000);
+  return out;
+}
+
 async function proxyLifiQuote(searchParams) {
   const url = `${LIFI}/quote?${searchParams.toString()}`;
   const res = await fetch(url, { headers: { accept: 'application/json' } });
@@ -264,6 +357,18 @@ export async function GET(request, { params }) {
       const symbol = (url.searchParams.get('symbol') || 'BTCUSDT').toUpperCase();
       const interval = url.searchParams.get('interval') || '1h';
       const data = await fetchSignal(symbol, interval);
+      return NextResponse.json(data);
+    }
+
+    if (path === 'signal/pairs') {
+      const data = await fetchPairs();
+      return NextResponse.json({ pairs: data, count: data.length });
+    }
+
+    if (path === 'signal/scan') {
+      const interval = url.searchParams.get('interval') || '1h';
+      const limit = Math.min(30, parseInt(url.searchParams.get('limit') || '15'));
+      const data = await scanPairs(interval, limit);
       return NextResponse.json(data);
     }
 
