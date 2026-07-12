@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Wallet, ArrowDownUp, Star, Fuel, LogOut, RefreshCw, Eye } from 'lucide-react';
+import { Wallet, ArrowDownUp, Star, Fuel, RefreshCw, Eye, Settings2, Shuffle } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Brand } from '@/components/kavach/shared';
@@ -11,6 +11,8 @@ import { PortfolioTab } from '@/components/kavach/portfolio';
 import { SwapTab } from '@/components/kavach/swap';
 import { WatchlistTab } from '@/components/kavach/watchlist';
 import { GasTab } from '@/components/kavach/gas';
+import { PadaSankaraTab } from '@/components/kavach/padasankara';
+import { SettingsSheet } from '@/components/kavach/settings';
 import { ReceiveSheet, Sheet } from '@/components/kavach/receive';
 import { SendSheet } from '@/components/kavach/send';
 
@@ -42,6 +44,7 @@ const App = () => {
   const [showSend, setShowSend] = useState(false);
   const [showReceive, setShowReceive] = useState(false);
   const [showPhrase, setShowPhrase] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
 
   useEffect(() => {
     setHydrated(true);
@@ -132,8 +135,8 @@ const App = () => {
                 <Button size="icon" variant="ghost" onClick={() => loadData()} className="h-9 w-9 rounded-full text-slate-300 hover:bg-slate-800 hover:text-white">
                   <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
                 </Button>
-                <Button size="icon" variant="ghost" onClick={handleLogout} className="h-9 w-9 rounded-full text-slate-300 hover:bg-slate-800 hover:text-white">
-                  <LogOut className="h-4 w-4" />
+                <Button size="icon" variant="ghost" onClick={() => setShowSettings(true)} className="h-9 w-9 rounded-full text-slate-300 hover:bg-slate-800 hover:text-white">
+                  <Settings2 className="h-4 w-4" />
                 </Button>
               </div>
             </div>
@@ -156,6 +159,7 @@ const App = () => {
                   />
                 )}
                 {tab === 'swap' && <SwapTab mnemonic={wallet?.mnemonic} addresses={addresses} balances={balances} prices={prices} />}
+                {tab === 'padasankara' && <PadaSankaraTab />}
                 {tab === 'watchlist' && <WatchlistTab />}
                 {tab === 'gas' && <GasTab prices={prices} />}
               </motion.div>
@@ -180,6 +184,16 @@ const App = () => {
             {showPhrase && (
               <RevealPhraseModal mnemonic={wallet?.mnemonic} onClose={() => setShowPhrase(false)} />
             )}
+            {showSettings && (
+              <SettingsSheet
+                onClose={() => setShowSettings(false)}
+                onWalletChanged={() => {
+                  // wallet changed \u2014 reset local state to trigger reload
+                  setAddresses({}); setBalances({}); setPrices({});
+                  setTab('portfolio');
+                }}
+              />
+            )}
           </motion.div>
         )}
       </AnimatePresence>
@@ -189,15 +203,16 @@ const App = () => {
 
 const BottomNav = ({ tab, setTab }) => {
   const items = [
-    { id: 'portfolio', label: 'Portfolio', icon: Wallet },
+    { id: 'portfolio', label: 'Home', icon: Wallet },
     { id: 'swap', label: 'Swap', icon: ArrowDownUp },
-    { id: 'watchlist', label: 'Watchlist', icon: Star },
+    { id: 'padasankara', label: 'Shuffle', icon: Shuffle },
+    { id: 'watchlist', label: 'Watch', icon: Star },
     { id: 'gas', label: 'Gas', icon: Fuel },
   ];
   return (
     <div className="fixed inset-x-0 bottom-0 z-40">
-      <div className="mx-auto max-w-md border-t border-slate-800/70 bg-slate-950/95 px-2 backdrop-blur-md">
-        <div className="grid grid-cols-4">
+      <div className="mx-auto max-w-md border-t border-slate-800/70 bg-slate-950/95 px-1 backdrop-blur-md">
+        <div className="grid grid-cols-5">
           {items.map((it) => {
             const active = tab === it.id;
             const Icon = it.icon;
@@ -205,9 +220,9 @@ const BottomNav = ({ tab, setTab }) => {
               <button
                 key={it.id}
                 onClick={() => setTab(it.id)}
-                className={`flex flex-col items-center gap-1 py-3 text-[10px] font-medium transition ${active ? 'text-emerald-400' : 'text-slate-500 hover:text-slate-300'}`}
+                className={`flex flex-col items-center gap-1 py-3 text-[10px] font-medium transition ${active ? (it.id === 'padasankara' ? 'text-fuchsia-400' : 'text-emerald-400') : 'text-slate-500 hover:text-slate-300'}`}
               >
-                <Icon className={`h-5 w-5 ${active ? 'drop-shadow-[0_0_8px_rgb(52,211,153)]' : ''}`} />
+                <Icon className={`h-5 w-5 ${active ? (it.id === 'padasankara' ? 'drop-shadow-[0_0_8px_rgb(232,121,249)]' : 'drop-shadow-[0_0_8px_rgb(52,211,153)]') : ''}`} />
                 <span className="uppercase tracking-wider">{it.label}</span>
               </button>
             );
