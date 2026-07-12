@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
-  Wallet, ArrowDownUp, Star, Fuel, RefreshCw, Settings2, Shuffle, Activity,
+  Wallet, ArrowDownUp, Star, Fuel, RefreshCw, Settings2, Shuffle, Activity, Bell, X, TrendingUp, TrendingDown, Minus,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -52,6 +52,7 @@ const App = () => {
   const [showPhrase, setShowPhrase] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showWalletList, setShowWalletList] = useState(false);
+  const [showAlerts, setShowAlerts] = useState(false);
 
   // Splash → route to lock or welcome
   useEffect(() => {
@@ -159,6 +160,45 @@ const App = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [totalUsd, loading]);
 
+  // Signal Alerts poller \u2014 fetch top 15 pairs every 60s and detect new Grade A/A+
+  useEffect(() => {
+    if (!store.unlocked || !store.signalAlertsEnabled) return;
+    let alive = true;
+    const poll = async () => {
+      try {
+        const res = await fetch('/api/signal/scan?interval=1h&limit=15');
+        const j = await res.json();
+        if (!alive || !j.results) return;
+        for (const r of j.results) {
+          if (!['A+', 'A'].includes(r.grade)) continue;
+          if (r.side === 'none') continue;
+          const added = useWalletStore.getState().addSignalAlert({
+            symbol: r.symbol, interval: '1h', signal: r.signal, grade: r.grade,
+            confidence: r.confidence, entry: r.entry, tp1: r.tp1, tp2: r.tp2,
+            stop_loss: r.stop_loss, probability: r.probability,
+          });
+          if (added) {
+            toast.success(`\ud83d\ude80 ${r.symbol} \u00b7 ${r.signal} \u00b7 Grade ${r.grade}`, {
+              description: `Entry $${r.entry} \u2022 Conf ${r.confidence} \u2022 TP1 $${r.tp1}`,
+              duration: 10000,
+            });
+            if (typeof window !== 'undefined' && 'Notification' in window) {
+              if (Notification.permission === 'granted') {
+                try { new Notification(`Kavach Signal \u00b7 Grade ${r.grade}`, { body: `${r.symbol} ${r.signal} at $${r.entry}` }); } catch {}
+              } else if (Notification.permission === 'default') {
+                Notification.requestPermission().catch(() => {});
+              }
+            }
+          }
+        }
+      } catch {}
+    };
+    poll();
+    const t = setInterval(poll, 60_000);
+    return () => { alive = false; clearInterval(t); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [store.unlocked, store.signalAlertsEnabled]);
+
   // Onboarding flow completion
   const handleOnboardingComplete = async ({ userName, password }) => {
     if (!pendingWallet) throw new Error('No wallet');
@@ -240,6 +280,14 @@ const App = () => {
                 <Button size="icon" variant="ghost" onClick={() => loadData()} className="h-9 w-9 rounded-full text-slate-300 hover:bg-slate-800 hover:text-white">
                   <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
                 </Button>
+                <Button size="icon" variant="ghost" onClick={() => setShowAlerts(true)} className="relative h-9 w-9 rounded-full text-slate-300 hover:bg-slate-800 hover:text-white">
+                  <Bell className="h-4 w-4" />
+                  {store.signalAlerts.filter((a) => !a.seen).length > 0 && (
+                    <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-cyan-500 px-1 text-[9px] font-bold text-white">
+                      {store.signalAlerts.filter((a) => !a.seen).length}
+                    </span>
+                  )}
+                </Button>
                 <Button size="icon" variant="ghost" onClick={() => setShowSettings(true)} className="h-9 w-9 rounded-full text-slate-300 hover:bg-slate-800 hover:text-white">
                   <Settings2 className="h-4 w-4" />
                 </Button>
@@ -299,6 +347,12 @@ const App = () => {
             )}
             {showWalletList && (
               <WalletListSheet prices={prices} onClose={() => setShowWalletList(false)} />
+            )}
+            {showAlerts && (
+              <SignalAlertsSheet
+                onClose={() => { setShowAlerts(false); store.markAllSignalAlertsSeen(); }}
+                onOpenSignal={() => { setTab('signal'); setShowAlerts(false); }}
+              />
             )}
             {showSettings && (
               <SettingsSheet
@@ -386,6 +440,70 @@ const RevealPhraseModal = ({ mnemonic, onClose }) => {
       <div className="mt-4 flex gap-2">
         <Button variant="outline" onClick={copy} disabled={!revealed} className="flex-1 border-slate-700 bg-slate-900/60 text-slate-200 hover:bg-slate-800">Salin</Button>
         <Button onClick={onClose} className="flex-1 bg-gradient-to-r from-emerald-500 to-teal-500 text-white hover:from-emerald-400 hover:to-teal-400">Selesai</Button>
+      </div>
+    </Sheet>
+  );
+};
+
+const SignalAlertsSheet = ({ onClose, onOpenSignal }) => {
+  const alerts = useWalletStore((s) => s.signalAlerts);
+  const clearSignalAlerts = useWalletStore((s) => s.clearSignalAlerts);
+  const toggleEnabled = useWalletStore((s) => s.toggleSignalAlertsEnabled);
+  const enabled = useWalletStore((s) => s.signalAlertsEnabled);
+  const fmtTime = (ts) => new Date(ts).toLocaleString('id-ID', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+  const gradeColor = { 'A+': 'bg-emerald-500/20 text-emerald-300', 'A': 'bg-cyan-500/20 text-cyan-300' };
+  return (
+    <Sheet onClose={onClose}>
+      <div className="mb-3 flex items-center justify-between">
+        <div>
+          <div className="text-lg font-bold text-white">Signal Alerts</div>
+          <div className="text-xs text-slate-400">{alerts.length} Grade A/A+ tercatat</div>
+        </div>
+        <button onClick={onClose} className="rounded-full p-1 text-slate-400 hover:text-white"><X className="h-5 w-5" /></button>
+      </div>
+      <div className="mb-3 flex items-center justify-between rounded-xl border border-slate-800 bg-slate-900/60 px-3 py-2">
+        <div className="flex items-center gap-2 text-xs text-slate-300">
+          <Bell className="h-3.5 w-3.5 text-cyan-400" />
+          <span>Auto-scan tiap 60 detik</span>
+        </div>
+        <button onClick={toggleEnabled} className={`rounded-full px-2 py-1 text-[10px] font-bold uppercase ${enabled ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-700 text-slate-400'}`}>{enabled ? 'ON' : 'OFF'}</button>
+      </div>
+      {alerts.length > 0 && (
+        <div className="mb-2 flex justify-end">
+          <button onClick={() => { if (window.confirm('Hapus semua riwayat alert?')) clearSignalAlerts(); }} className="text-[11px] text-slate-500 hover:text-red-400">Hapus riwayat</button>
+        </div>
+      )}
+      <div className="max-h-[55vh] space-y-2 overflow-y-auto">
+        {alerts.length === 0 && (
+          <div className="py-10 text-center text-xs text-slate-500">Belum ada Grade A/A+.<br />Poller memantau top 15 pair setiap 60s.</div>
+        )}
+        {alerts.map((a) => {
+          const isBuy = a.signal && a.signal.includes('Buy');
+          const Icon = isBuy ? TrendingUp : a.signal.includes('Sell') ? TrendingDown : Minus;
+          return (
+            <button key={a.id} onClick={onOpenSignal} className="block w-full rounded-xl border border-slate-800 bg-slate-900/60 p-3 text-left hover:bg-slate-900">
+              <div className="flex items-center gap-3">
+                <div className={`flex h-9 w-9 items-center justify-center rounded-xl ${isBuy ? 'bg-emerald-500/20 text-emerald-300' : 'bg-red-500/20 text-red-300'}`}>
+                  <Icon className="h-4 w-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-sm font-bold text-white">{a.symbol}</span>
+                    <span className={`rounded px-1.5 py-0.5 text-[9px] font-bold ${gradeColor[a.grade] || 'bg-slate-700 text-slate-300'}`}>{a.grade}</span>
+                    {!a.seen && <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 animate-pulse" />}
+                  </div>
+                  <div className="mt-0.5 text-[10px] text-slate-400">{a.signal} \u00b7 Conf {a.confidence} \u00b7 Prob {a.probability}% \u00b7 {a.interval}</div>
+                  <div className="text-[10px] text-slate-500">{fmtTime(a.timestamp)}</div>
+                </div>
+                <div className="text-right">
+                  <div className="font-mono text-xs font-semibold text-white">${a.entry}</div>
+                  <div className="text-[9px] text-emerald-400">TP1 ${a.tp1}</div>
+                  <div className="text-[9px] text-red-400">SL ${a.stop_loss}</div>
+                </div>
+              </div>
+            </button>
+          );
+        })}
       </div>
     </Sheet>
   );
