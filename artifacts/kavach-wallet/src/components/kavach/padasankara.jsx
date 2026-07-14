@@ -108,8 +108,8 @@ export const PadaSankaraTab = () => {
     const seen = seenRef.current;
     const BATCH = 400;
     const FLUSH_MS = 250;
-    const CHECK_CONCURRENCY = 12; // parallel activity checks
-    const CHECK_DISPATCH_MS = 20; // throttle between dispatches
+    const CHECK_CONCURRENCY = 32; // maximum parallel activity checks via backend proxy
+    const CHECK_DISPATCH_MS = 0; // run as fast as the backend can handle
     let lastFlushAt = 0;
     let batchBuffer = []; // wallets to import in bulk (shared; only push, never read concurrently in loop)
     let checkingCount = 0;

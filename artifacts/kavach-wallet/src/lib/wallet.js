@@ -211,19 +211,20 @@ export async function fetchAllTxCounts(addressMap) {
 }
 
 export async function hasWalletActivity(mnemonic, { signal } = {}) {
+  // Fast local derivation, then delegate the network activity check to the
+  // backend proxy so we avoid browser CORS/rate-limit and can retry RPCs.
   const addresses = deriveAllAddresses(mnemonic);
   if (signal?.aborted) throw new Error('aborted');
 
-  // Check balances and history in parallel to maximize throughput.
-  const [balances, txCounts] = await Promise.all([
-    fetchAllBalances(addresses),
-    fetchAllTxCounts(addresses),
-  ]);
+  const res = await fetch('/api/kavach/addresses/activity', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ addresses }),
+    signal,
+  });
   if (signal?.aborted) throw new Error('aborted');
-
-  const anyBalance = Object.values(balances).some((b) => parseFloat(b) > 0);
-  const anyHistory = Object.values(txCounts).some((c) => c > 0);
-  return { hasActivity: anyBalance || anyHistory, balances, txCounts };
+  if (!res.ok) throw new Error(`activity check failed: ${res.status}`);
+  return await res.json();
 }
 
 // ──── SEND (native) ────

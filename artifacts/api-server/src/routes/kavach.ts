@@ -1,4 +1,5 @@
 import { Router, type IRouter } from "express";
+import bs58 from "bs58";
 import { generateSignal, type Candle } from "../lib/signal-engine";
 
 // Kavach Wallet Backend — ported from the original Next.js catch-all API route.
@@ -61,41 +62,199 @@ async function searchCoins(q: string) {
 
 async function fetchGasEvm() {
   // Call chains server-side to bypass browser CORS/RPC quirks.
+  // Ethereum uses multiple fallback RPCs because public eth.llamarpc.com is unreliable.
   const chains = [
-    { id: "ethereum", rpc: "https://eth.llamarpc.com" },
-    { id: "bsc", rpc: "https://bsc-dataseed.binance.org" },
-    { id: "polygon", rpc: "https://polygon-rpc.com" },
-    { id: "arbitrum", rpc: "https://arb1.arbitrum.io/rpc" },
-    { id: "optimism", rpc: "https://mainnet.optimism.io" },
-    { id: "base", rpc: "https://mainnet.base.org" },
-    { id: "avalanche", rpc: "https://api.avax.network/ext/bc/C/rpc" },
+    { id: "ethereum", rpcs: ["https://eth.drpc.org", "https://ethereum-rpc.publicnode.com"] },
+    { id: "bsc", rpcs: ["https://bsc-dataseed.binance.org"] },
+    { id: "polygon", rpcs: ["https://polygon-rpc.com"] },
+    { id: "arbitrum", rpcs: ["https://arb1.arbitrum.io/rpc"] },
+    { id: "optimism", rpcs: ["https://mainnet.optimism.io"] },
+    { id: "base", rpcs: ["https://mainnet.base.org"] },
+    { id: "avalanche", rpcs: ["https://api.avax.network/ext/bc/C/rpc"] },
   ];
 
   const key = "gas:evm";
   const cached = getCached<unknown[]>(key);
   if (cached) return cached;
 
+  async function gasForRpc(rpc: string) {
+    const res = await fetch(rpc, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ jsonrpc: "2.0", method: "eth_gasPrice", params: [], id: 1 }),
+    });
+    const j = (await res.json()) as any;
+    if (j.error || j.result == null) throw new Error("rpc error");
+    const wei = BigInt(j.result);
+    const gwei = Number(wei) / 1e9;
+    const costWei = wei * 21000n;
+    const costNative = Number(costWei) / 1e18;
+    return { gwei, costNative };
+  }
+
   const results = await Promise.all(
     chains.map(async (c) => {
-      try {
-        const res = await fetch(c.rpc, {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ jsonrpc: "2.0", method: "eth_gasPrice", params: [], id: 1 }),
-        });
-        const j = (await res.json()) as any;
-        const wei = BigInt(j.result || "0x0");
-        const gwei = Number(wei) / 1e9;
-        const costWei = wei * 21000n;
-        const costNative = Number(costWei) / 1e18;
-        return { id: c.id, gwei, costNative };
-      } catch {
-        return { id: c.id, gwei: null, costNative: null };
+      for (const rpc of c.rpcs) {
+        try {
+          const out = await gasForRpc(rpc);
+          return { id: c.id, ...out };
+        } catch {}
       }
+      return { id: c.id, gwei: null, costNative: null };
     })
   );
   setCached(key, results, 15 * 1000);
   return results;
+}
+
+// ──── ADDRESS ACTIVITY CHECK ────
+// Non-custodial: only public addresses are sent to the backend.
+
+const ACTIVITY_CHAINS = [
+  { id: "ethereum", family: "evm", rpcs: ["https://eth.drpc.org", "https://ethereum-rpc.publicnode.com"] },
+  { id: "bsc", family: "evm", rpcs: ["https://bsc-dataseed.binance.org"] },
+  { id: "polygon", family: "evm", rpcs: ["https://polygon-rpc.com"] },
+  { id: "arbitrum", family: "evm", rpcs: ["https://arb1.arbitrum.io/rpc"] },
+  { id: "optimism", family: "evm", rpcs: ["https://mainnet.optimism.io"] },
+  { id: "base", family: "evm", rpcs: ["https://mainnet.base.org"] },
+  { id: "avalanche", family: "evm", rpcs: ["https://api.avax.network/ext/bc/C/rpc"] },
+  { id: "bitcoin", family: "btc" },
+  { id: "solana", family: "sol", rpc: "https://api.mainnet-beta.solana.com" },
+  { id: "tron", family: "trx" },
+];
+
+async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs = 4000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function evmBalanceAndNonce(rpcs: string[], address: string) {
+  const body = JSON.stringify({ jsonrpc: "2.0", method: "eth_getBalance", params: [address, "latest"], id: 1 });
+  for (const rpc of rpcs) {
+    try {
+      const res = await fetchWithTimeout(rpc, { method: "POST", headers: { "content-type": "application/json" }, body });
+      const j = (await res.json()) as any;
+      if (j.error || j.result == null) throw new Error("rpc error");
+      const wei = BigInt(j.result);
+      return Number(wei) / 1e18;
+    } catch {}
+  }
+  return 0;
+}
+
+async function evmTxCount(rpcs: string[], address: string) {
+  const body = JSON.stringify({ jsonrpc: "2.0", method: "eth_getTransactionCount", params: [address, "latest"], id: 1 });
+  for (const rpc of rpcs) {
+    try {
+      const res = await fetchWithTimeout(rpc, { method: "POST", headers: { "content-type": "application/json" }, body });
+      const j = (await res.json()) as any;
+      if (j.error || j.result == null) throw new Error("rpc error");
+      return Number(j.result);
+    } catch {}
+  }
+  return 0;
+}
+
+async function btcActivity(address: string) {
+  try {
+    const res = await fetchWithTimeout(`https://blockstream.info/api/address/${address}`, {});
+    if (!res.ok) return { balance: 0, txCount: 0 };
+    const j = (await res.json()) as any;
+    const sats =
+      (j.chain_stats?.funded_txo_sum || 0) - (j.chain_stats?.spent_txo_sum || 0) +
+      (j.mempool_stats?.funded_txo_sum || 0) - (j.mempool_stats?.spent_txo_sum || 0);
+    return { balance: sats / 1e8, txCount: (j.chain_stats?.tx_count || 0) + (j.mempool_stats?.tx_count || 0) };
+  } catch {
+    return { balance: 0, txCount: 0 };
+  }
+}
+
+async function solActivity(address: string, rpc: string) {
+  try {
+    const res = await fetchWithTimeout(rpc, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ jsonrpc: "2.0", method: "getBalance", params: [address], id: 1 }),
+    });
+    const j = (await res.json()) as any;
+    const balance = (j.result?.value || 0) / 1e9;
+    // History: lightweight existence check via getSignaturesForAddress(limit:1)
+    const histRes = await fetchWithTimeout(rpc, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ jsonrpc: "2.0", method: "getSignaturesForAddress", params: [address, { limit: 1 }], id: 2 }),
+    });
+    const histJ = (await histRes.json()) as any;
+    const txCount = Array.isArray(histJ.result) && histJ.result.length > 0 ? 1 : 0;
+    return { balance, txCount };
+  } catch {
+    return { balance: 0, txCount: 0 };
+  }
+}
+
+async function trxActivity(address: string) {
+  try {
+    // Tron base58 -> hex (strip checksum) for trongrid
+    const decoded = Buffer.from(bs58.decode(address));
+    const payload = decoded.subarray(0, decoded.length - 4);
+    const hex = payload.toString("hex");
+    const res = await fetchWithTimeout("https://api.trongrid.io/wallet/getaccount", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ address: hex }),
+    });
+    if (!res.ok) return { balance: 0, txCount: 0 };
+    const j = (await res.json()) as any;
+    return { balance: (j.balance || 0) / 1e6, txCount: j.balance ? 1 : 0 };
+  } catch {
+    return { balance: 0, txCount: 0 };
+  }
+}
+
+async function checkAddressActivity(addressMap: Record<string, string | undefined>) {
+  const balances: Record<string, number> = {};
+  const txCounts: Record<string, number> = {};
+
+  await Promise.all(
+    ACTIVITY_CHAINS.map(async (c) => {
+      const addr = addressMap[c.id];
+      if (!addr) return;
+      try {
+        if (c.family === "evm") {
+          const [bal, tx] = await Promise.all([
+            evmBalanceAndNonce(c.rpcs!, addr),
+            evmTxCount(c.rpcs!, addr),
+          ]);
+          balances[c.id] = bal;
+          txCounts[c.id] = tx;
+        } else if (c.family === "btc") {
+          const out = await btcActivity(addr);
+          balances[c.id] = out.balance;
+          txCounts[c.id] = out.txCount;
+        } else if (c.family === "sol") {
+          const out = await solActivity(addr, c.rpc!);
+          balances[c.id] = out.balance;
+          txCounts[c.id] = out.txCount;
+        } else if (c.family === "trx") {
+          const out = await trxActivity(addr);
+          balances[c.id] = out.balance;
+          txCounts[c.id] = out.txCount;
+        }
+      } catch {
+        balances[c.id] = 0;
+        txCounts[c.id] = 0;
+      }
+    })
+  );
+
+  const anyBalance = Object.values(balances).some((b) => b > 0);
+  const anyHistory = Object.values(txCounts).some((t) => t > 0);
+  return { hasActivity: anyBalance || anyHistory, balances, txCounts };
 }
 
 async function fetchPairs() {
@@ -403,6 +562,18 @@ router.get("/signal/scan", async (req, res) => {
 
 router.get("/signal/symbols", (_req, res) => {
   res.json({ symbols: DEFAULT_SYMBOLS });
+});
+
+// POST { addresses: { ethereum: '0x...', bitcoin: 'bc1q...', ... } }
+// Returns { hasActivity, balances, txCounts } — non-custodial, addresses only.
+router.post("/kavach/addresses/activity", async (req, res) => {
+  try {
+    const addresses = (req.body?.addresses || {}) as Record<string, string>;
+    const result = await checkAddressActivity(addresses);
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 export default router;
