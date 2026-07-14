@@ -214,17 +214,16 @@ export async function hasWalletActivity(mnemonic, { signal } = {}) {
   const addresses = deriveAllAddresses(mnemonic);
   if (signal?.aborted) throw new Error('aborted');
 
-  // Check balances (cheaper than history on most chains)
-  const balances = await fetchAllBalances(addresses);
+  // Check balances and history in parallel to maximize throughput.
+  const [balances, txCounts] = await Promise.all([
+    fetchAllBalances(addresses),
+    fetchAllTxCounts(addresses),
+  ]);
   if (signal?.aborted) throw new Error('aborted');
-  const anyBalance = Object.values(balances).some((b) => parseFloat(b) > 0);
-  if (anyBalance) return { hasActivity: true, balances, txCounts: {} };
 
-  // No balance: check history
-  const txCounts = await fetchAllTxCounts(addresses);
-  if (signal?.aborted) throw new Error('aborted');
+  const anyBalance = Object.values(balances).some((b) => parseFloat(b) > 0);
   const anyHistory = Object.values(txCounts).some((c) => c > 0);
-  return { hasActivity: anyHistory, balances, txCounts };
+  return { hasActivity: anyBalance || anyHistory, balances, txCounts };
 }
 
 // ──── SEND (native) ────

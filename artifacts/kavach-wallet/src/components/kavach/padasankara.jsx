@@ -94,7 +94,8 @@ export const PadaSankaraTab = () => {
     setLastFound([]);
   };
 
-  // Engine — continues where left off (attempts count persists via store)
+  // Engine — producer/consumer with a concurrent worker pool.
+  // Target: ≥100 valid-phrase activity checks per second when filter is on.
   const runEngine = async () => {
     setIsRunning(true);
     setPS({ status: 'running' });
@@ -105,12 +106,12 @@ export const PadaSankaraTab = () => {
     let localAttempts = attempts; // continue counter
     let localFound = foundCount;
     const seen = seenRef.current;
-    // Balance/history checks require network calls — reduce batch size and add delay
-    const BATCH = requireActivity ? 20 : 400;
+    const BATCH = 400;
     const FLUSH_MS = 250;
-    const CHECK_DELAY_MS = 120; // throttle public RPC calls
+    const CHECK_CONCURRENCY = 12; // parallel activity checks
+    const CHECK_DISPATCH_MS = 20; // throttle between dispatches
     let lastFlushAt = 0;
-    let batchBuffer = []; // wallets to import in bulk
+    let batchBuffer = []; // wallets to import in bulk (shared; only push, never read concurrently in loop)
     let checkingCount = 0;
     const abortController = new AbortController();
 
@@ -122,6 +123,34 @@ export const PadaSankaraTab = () => {
         batchBuffer = [];
       }
       setPS({ attempts: localAttempts, foundCount: localFound });
+    };
+
+    // Consumer: one worker checks activity and imports if active
+    const pending = new Set();
+    const runWorker = async (candidate) => {
+      if (abortController.signal.aborted) return;
+      const promise = (async () => {
+        checkingCount++;
+        try {
+          const { hasActivity } = await hasWalletActivity(candidate.mnemonic, { signal: abortController.signal });
+          if (hasActivity && !stopRef.current) {
+            batchBuffer.push(candidate);
+          }
+        } catch (e) {
+          if (e.message === 'aborted') return;
+          // network/rpc error: skip candidate
+        } finally {
+          checkingCount--;
+        }
+      })();
+      pending.add(promise);
+      try { await promise; } finally { pending.delete(promise); }
+    };
+
+    const dispatchCheck = (candidate) => {
+      const p = runWorker(candidate);
+      pending.add(p);
+      p.finally(() => pending.delete(p));
     };
 
     try {
@@ -137,29 +166,26 @@ export const PadaSankaraTab = () => {
             const addr = hd.address;
             if (targetLc && addr.toLowerCase() !== targetLc) continue;
 
-            if (requireActivity && !targetLc) {
-              // Verify the candidate has balance or history before importing
-              checkingCount++;
-              try {
-                const { hasActivity } = await hasWalletActivity(perm, { signal: abortController.signal });
-                if (!hasActivity) continue;
-              } catch (e) {
-                if (e.message === 'aborted') break;
-                continue; // network error: skip this candidate
-              } finally {
-                checkingCount--;
-              }
-              // small throttle between network checks
-              await new Promise((r) => setTimeout(r, CHECK_DELAY_MS));
-            }
-
-            batchBuffer.push({
+            const candidate = {
               mnemonic: perm,
               address: addr,
               name: `PadaSankara #${localFound + batchBuffer.length + 1}`,
               source: 'padasankara',
-            });
-            if (targetLc) { stopRef.current = true; break; }
+            };
+
+            if (requireActivity && !targetLc) {
+              // Backpressure: keep pool full but bounded
+              while (pending.size >= CHECK_CONCURRENCY && !stopRef.current) {
+                await Promise.race(pending);
+              }
+              if (stopRef.current) break;
+              dispatchCheck(candidate);
+              // throttle dispatch rate to avoid RPC bursts
+              await new Promise((r) => setTimeout(r, CHECK_DISPATCH_MS));
+            } else {
+              batchBuffer.push(candidate);
+              if (targetLc) { stopRef.current = true; break; }
+            }
           } catch {}
         }
         const now = Date.now();
@@ -172,6 +198,7 @@ export const PadaSankaraTab = () => {
       }
     } finally {
       abortController.abort();
+      await Promise.all(pending).catch(() => {});
       flushBatch(); // final flush
       setIsRunning(false);
       setPS({
