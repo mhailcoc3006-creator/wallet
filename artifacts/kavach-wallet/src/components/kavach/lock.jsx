@@ -66,7 +66,7 @@ export const LockScreen = ({ onUnlocked, onReset }) => {
             type={show ? 'text' : 'password'}
             value={password}
             onChange={(e) => { setPassword(e.target.value); setError(''); }}
-            placeholder="Password vault"
+            placeholder="Password akun"
             autoFocus
             className="h-14 rounded-2xl border-slate-700 bg-slate-900/70 pl-12 pr-12 text-sm text-white placeholder:text-slate-500 focus-visible:ring-emerald-500"
           />
@@ -87,7 +87,7 @@ export const LockScreen = ({ onUnlocked, onReset }) => {
           disabled={loading || !password}
           className="h-14 w-full rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 text-base font-semibold text-white shadow-lg shadow-emerald-500/30 hover:from-emerald-400 hover:to-teal-400 disabled:opacity-40"
         >
-          {loading ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Membuka...</> : <>Unlock Vault</>}
+          {loading ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Membuka...</> : <>Login</>}
         </Button>
       </form>
 

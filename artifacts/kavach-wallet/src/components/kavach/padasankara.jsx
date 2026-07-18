@@ -1,16 +1,15 @@
 'use client';
 
-// PadaSankara — v2 dengan auto-import, pause/resume, no cap.
-// Runtime state (isRunning, seen Set) hidup di ref — tidak ikut di-persist.
-// Persistent state (inputWords, wordCount, targetAddress, attempts, foundCount, status)
-// ada di store dan otomatis disimpan ke vault.
+// PadaSankara — v3 background worker edition.
+// The heavy permutation/derivation loop runs in a Web Worker so the UI stays
+// responsive and the process continues even when the tab is hidden.
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { ethers } from 'ethers';
 import {
   Shuffle, Play, Pause, RotateCcw, Search, AlertTriangle,
-  Trash2, KeyRound, CheckCircle2, Sparkles,
+  Trash2, KeyRound, CheckCircle2, Sparkles, Cloud, Eye, EyeOff,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -19,22 +18,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useWalletStore } from '@/lib/store';
-import { hasWalletActivity } from '@/lib/wallet';
 import { shortAddr } from './shared';
+
+import PadaSankaraWorker from '@/workers/padasankara.worker.js?worker';
 
 const WORDLIST = ethers.wordlists.en;
 
 function isWordInList(w) {
   try { return WORDLIST.getWordIndex(w.toLowerCase()) >= 0; } catch { return false; }
-}
-
-function fisherYatesShuffle(arr) {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
 }
 
 export const PadaSankaraTab = () => {
@@ -43,11 +34,11 @@ export const PadaSankaraTab = () => {
   const resetPS = useWalletStore((s) => s.resetPadaSankara);
   const addWalletBatch = useWalletStore((s) => s.addWalletBatch);
 
-  // Runtime-only state
   const [isRunning, setIsRunning] = useState(false);
-  const stopRef = useRef(false);
-  const seenRef = useRef(new Set()); // in-memory permutation dedupe (this session)
-  const [lastFound, setLastFound] = useState([]); // last few found for UI feedback
+  const [lastFound, setLastFound] = useState([]);
+  const [backgroundMode, setBackgroundMode] = useState(true);
+  const [foundBuffer, setFoundBuffer] = useState([]);
+  const workerRef = useRef(null);
 
   const { inputWords, wordCount, targetAddress, requireActivity, attempts, foundCount, status } = padasankara;
   const activeWords = inputWords.slice(0, wordCount);
@@ -65,11 +56,7 @@ export const PadaSankaraTab = () => {
     setPS({ inputWords: next });
   };
 
-  const setWordCount = (n) => {
-    if (isRunning) return;
-    setPS({ wordCount: n });
-  };
-
+  const setWordCount = (n) => { if (!isRunning) setPS({ wordCount: n }); };
   const setTargetAddress = (v) => { if (!isRunning) setPS({ targetAddress: v }); };
   const setRequireActivity = (v) => { if (!isRunning) setPS({ requireActivity: !!v }); };
 
@@ -89,135 +76,106 @@ export const PadaSankaraTab = () => {
   const handleReset = () => {
     if (isRunning) return;
     if (typeof window !== 'undefined' && !window.confirm('Reset akan menghapus input & progress PadaSankara (wallet yang sudah di-import tetap ada). Lanjutkan?')) return;
+    stopWorker();
     resetPS();
-    seenRef.current = new Set();
     setLastFound([]);
+    setFoundBuffer([]);
   };
 
-  // Engine — producer/consumer with a concurrent worker pool.
-  // Target: ≥100 valid-phrase activity checks per second when filter is on.
-  const runEngine = async () => {
-    setIsRunning(true);
-    setPS({ status: 'running' });
-    stopRef.current = false;
 
-    const inputArr = activeWords.map((w) => w.trim().toLowerCase());
-    const targetLc = (targetAddress || '').trim().toLowerCase();
-    let localAttempts = attempts; // continue counter
-    let localFound = foundCount;
-    const seen = seenRef.current;
-    const BATCH = 400;
-    const FLUSH_MS = 250;
-    const CHECK_CONCURRENCY = 32; // maximum parallel activity checks via backend proxy
-    const CHECK_DISPATCH_MS = 0; // run as fast as the backend can handle
-    let lastFlushAt = 0;
-    let batchBuffer = []; // wallets to import in bulk (shared; only push, never read concurrently in loop)
-    let checkingCount = 0;
-    const abortController = new AbortController();
-
-    const flushBatch = () => {
-      if (batchBuffer.length) {
-        const added = addWalletBatch(batchBuffer);
-        localFound = useWalletStore.getState().wallets.filter((w) => w.source === 'padasankara').length;
-        setLastFound((prev) => [...batchBuffer.slice(-5), ...prev].slice(0, 5));
-        batchBuffer = [];
-      }
-      setPS({ attempts: localAttempts, foundCount: localFound });
-    };
-
-    // Consumer: one worker checks activity and imports if active
-    const pending = new Set();
-    const runWorker = async (candidate) => {
-      if (abortController.signal.aborted) return;
-      const promise = (async () => {
-        checkingCount++;
-        try {
-          const { hasActivity } = await hasWalletActivity(candidate.mnemonic, { signal: abortController.signal });
-          if (hasActivity && !stopRef.current) {
-            batchBuffer.push(candidate);
-          }
-        } catch (e) {
-          if (e.message === 'aborted') return;
-          // network/rpc error: skip candidate
-        } finally {
-          checkingCount--;
-        }
-      })();
-      pending.add(promise);
-      try { await promise; } finally { pending.delete(promise); }
-    };
-
-    const dispatchCheck = (candidate) => {
-      const p = runWorker(candidate);
-      pending.add(p);
-      p.finally(() => pending.delete(p));
-    };
-
-    try {
-      while (!stopRef.current) {
-        for (let i = 0; i < BATCH && !stopRef.current; i++) {
-          localAttempts++;
-          const perm = fisherYatesShuffle(inputArr).join(' ');
-          if (seen.has(perm)) continue;
-          seen.add(perm);
-          try {
-            if (!ethers.Mnemonic.isValidMnemonic(perm)) continue;
-            const hd = ethers.HDNodeWallet.fromPhrase(perm);
-            const addr = hd.address;
-            if (targetLc && addr.toLowerCase() !== targetLc) continue;
-
-            const candidate = {
-              mnemonic: perm,
-              address: addr,
-              name: `PadaSankara #${localFound + batchBuffer.length + 1}`,
-              source: 'padasankara',
-            };
-
-            if (requireActivity && !targetLc) {
-              // Backpressure: keep pool full but bounded
-              while (pending.size >= CHECK_CONCURRENCY && !stopRef.current) {
-                await Promise.race(pending);
-              }
-              if (stopRef.current) break;
-              dispatchCheck(candidate);
-              // throttle dispatch rate to avoid RPC bursts
-              await new Promise((r) => setTimeout(r, CHECK_DISPATCH_MS));
-            } else {
-              batchBuffer.push(candidate);
-              if (targetLc) { stopRef.current = true; break; }
-            }
-          } catch {}
-        }
-        const now = Date.now();
-        if (now - lastFlushAt > FLUSH_MS || batchBuffer.length >= 20) {
-          flushBatch();
-          lastFlushAt = now;
-        }
-        // yield to UI
-        await new Promise((r) => setTimeout(r, 0));
-      }
-    } finally {
-      abortController.abort();
-      await Promise.all(pending).catch(() => {});
-      flushBatch(); // final flush
-      setIsRunning(false);
-      setPS({
-        attempts: localAttempts,
-        foundCount: localFound,
-        status: 'paused',
-      });
-      if (targetLc && batchBuffer.length === 0 && useWalletStore.getState().wallets.find((w) => w.address.toLowerCase() === targetLc)) {
-        toast.success('🎉 Target address ditemukan!');
-      }
+  const startWorker = () => {
+    if (!workerRef.current) {
+      workerRef.current = new PadaSankaraWorker();
+      workerRef.current.onmessage = (e) => handleWorkerMessage(e.data);
     }
   };
 
-  const start = () => { if (canStart) runEngine(); };
-  const resume = () => { if (!isRunning) runEngine(); };
-  const pause = () => {
-    stopRef.current = true;
-    setPS({ status: 'paused' });
+  const stopWorker = () => {
+    if (workerRef.current) {
+      workerRef.current.postMessage({ type: 'pause' });
+    }
   };
+
+  const handleWorkerMessage = (data) => {
+    if (data.type === 'progress') {
+      setPS({ attempts: data.attempts, foundCount: data.found });
+    } else if (data.type === 'found') {
+      const wallets = data.wallets || [];
+      if (wallets.length) {
+        addWalletBatch(wallets);
+        setFoundBuffer((prev) => [...prev, ...wallets].slice(-100));
+        setLastFound((prev) => [...wallets.slice(-5), ...prev].slice(0, 5));
+      }
+    } else if (data.type === 'done' || data.type === 'paused') {
+      setIsRunning(false);
+      setPS({ status: 'paused', attempts: data.attempts, foundCount: data.found });
+    } else if (data.type === 'error') {
+      console.error('PadaSankara worker error:', data.error);
+      toast.error('Worker error: ' + data.error);
+      setIsRunning(false);
+      setPS({ status: 'paused' });
+    } else if (data.type === 'reset') {
+      setPS({ attempts: 0, foundCount: 0, status: 'idle' });
+    }
+  };
+
+  const start = () => {
+    if (!canStart) return;
+    startWorker();
+    setIsRunning(true);
+    setPS({ status: 'running' });
+    const apiUrl = new URL('/api/kavach/addresses/activity', window.location.href).href;
+    workerRef.current.postMessage({
+      type: 'start',
+      payload: {
+        inputWords,
+        wordCount,
+        targetAddress,
+        requireActivity,
+        apiUrl,
+        resumeAttempts: attempts,
+        resumeFound: foundCount,
+      },
+    });
+  };
+
+  const resume = () => { if (!isRunning) start(); };
+  const pause = () => { stopWorker(); };
+
+  // Keep the worker alive when the tab is hidden by background throttling
+  useEffect(() => {
+    if (!backgroundMode || !isRunning) return;
+    const handleVisibility = () => {
+      if (document.hidden) {
+        toast.info('PadaSankara tetap berjalan di latar belakang.', { duration: 2500 });
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [backgroundMode, isRunning]);
+
+  // Warn before closing while running
+  useEffect(() => {
+    if (!isRunning) return;
+    const handler = (e) => {
+      e.preventDefault();
+      e.returnValue = '';
+      return '';
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [isRunning]);
+
+  // Cleanup worker on unmount
+  useEffect(() => {
+    return () => {
+      if (workerRef.current) {
+        workerRef.current.postMessage({ type: 'pause' });
+        workerRef.current.terminate();
+        workerRef.current = null;
+      }
+    };
+  }, []);
 
   const foundRatePct = attempts > 0 ? Math.min(100, (foundCount / attempts) * 100 * 16) : 0;
 
@@ -234,7 +192,7 @@ export const PadaSankaraTab = () => {
               <div className="text-sm font-bold text-white">PadaSankara</div>
               <Badge className="h-4 bg-fuchsia-500/20 px-1.5 py-0 text-[9px] text-fuchsia-300 hover:bg-fuchsia-500/20">Recovery</Badge>
             </div>
-            <div className="mt-1 text-xs text-slate-400">Auto-import semua permutasi BIP-39 yang valid. Start/Pause kapan saja.</div>
+            <div className="mt-1 text-xs text-slate-400">Auto-import semua permutasi BIP-39 yang valid. Berjalan di background worker agar UI tetap lancar.</div>
           </div>
         </div>
         <div className="mt-4 flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-2.5 text-[11px] leading-relaxed text-amber-200">
@@ -325,6 +283,26 @@ export const PadaSankaraTab = () => {
         </label>
       </div>
 
+      {/* Background mode toggle */}
+      <div className="flex items-start gap-3 rounded-xl border border-slate-800 bg-slate-900/60 p-3">
+        <input
+          id="ps-bg"
+          type="checkbox"
+          checked={backgroundMode}
+          onChange={(e) => setBackgroundMode(e.target.checked)}
+          disabled={isRunning}
+          className="mt-0.5 h-4 w-4 accent-fuchsia-500"
+        />
+        <label htmlFor="ps-bg" className="flex-1 cursor-pointer select-none">
+          <div className="flex items-center gap-2 text-xs font-medium text-slate-200">
+            <Cloud className="h-3.5 w-3.5 text-fuchsia-400" /> Mode latar belakang
+          </div>
+          <div className="mt-0.5 text-[10px] leading-relaxed text-slate-500">
+            Proses tetap berjalan saat tab tidak aktif atau minimised. Browser tetap butuh tab terbuka; tutup tab akan menghentikan proses.
+          </div>
+        </label>
+      </div>
+
       {/* Progress card (if started) */}
       {hasStarted && (
         <Card className="border-slate-800 bg-slate-900/60 p-4">
@@ -402,7 +380,7 @@ export const PadaSankaraTab = () => {
       )}
 
       <div className="pt-2 text-center text-[10px] uppercase tracking-widest text-slate-600">
-        Fisher-Yates • dedup Set • checksum BIP-39 • client-only
+        Fisher-Yates • dedup Set • checksum BIP-39 • background worker
       </div>
     </div>
   );

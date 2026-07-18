@@ -50,7 +50,7 @@ const FeaturePill = ({ icon: Icon, label }) => (
   </div>
 );
 
-export const Welcome = ({ onCreate, onImport }) => (
+export const Welcome = ({ onCreate, onImport, onLogin, hasVault }) => (
   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="mx-auto flex min-h-screen max-w-md flex-col px-6 py-10">
     <div className="flex items-center justify-between">
       <Brand />
@@ -71,12 +71,17 @@ export const Welcome = ({ onCreate, onImport }) => (
     </div>
     <div className="space-y-3">
       <Button onClick={onCreate} className="h-14 w-full rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 text-base font-semibold text-white shadow-lg shadow-emerald-500/30 hover:from-emerald-400 hover:to-teal-400">
-        <Sparkles className="mr-2 h-5 w-5" /> Buat Wallet Baru
+        <Sparkles className="mr-2 h-5 w-5" /> Daftar Akun & Buat Wallet
       </Button>
       <Button onClick={onImport} variant="outline" className="h-14 w-full rounded-2xl border-slate-700 bg-slate-900/60 text-base font-semibold text-white hover:bg-slate-800">
-        <Download className="mr-2 h-5 w-5" /> Import dengan Recovery Phrase
+        <Download className="mr-2 h-5 w-5" /> Import Wallet & Daftar
       </Button>
-      <p className="pt-2 text-center text-xs text-slate-500">Dengan melanjutkan, Anda bertanggung jawab atas keamanan recovery phrase Anda.</p>
+      {hasVault && (
+        <Button onClick={onLogin} variant="outline" className="h-12 w-full rounded-2xl border-slate-700 bg-slate-950/50 text-sm font-semibold text-slate-300 hover:bg-slate-800 hover:text-white">
+          <KeyRound className="mr-2 h-4 w-4" /> Sudah punya akun? Masuk
+        </Button>
+      )}
+      <p className="pt-2 text-center text-xs text-slate-500">Akun & wallet Anda dienkripsi lokal di device. Tidak ada server yang menyimpan password atau phrase.</p>
     </div>
   </motion.div>
 );
@@ -242,14 +247,14 @@ export const SetupPassword = ({ onBack, onDone }) => {
     try {
       await onDone({ userName: name.trim(), password: pwd });
     } catch (err) {
-      setError(err.message || 'Setup gagal.');
+      setError(err.message || 'Pendaftaran gagal.');
       setLoading(false);
     }
   };
 
   return (
     <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }} className="mx-auto flex min-h-screen max-w-md flex-col px-6 py-10">
-      <ScreenHeader onBack={onBack} title="Setup Login Vault" subtitle="Buat nama akun dan password. Semua wallet Anda dienkripsi dengan password ini di device." />
+      <ScreenHeader onBack={onBack} title="Daftar Akun Kavach" subtitle="Buat nama akun dan password vault. Semua wallet Anda dienkripsi dengan password ini di device." />
 
       <form onSubmit={submit} className="space-y-4">
         <div>
@@ -285,7 +290,7 @@ export const SetupPassword = ({ onBack, onDone }) => {
         {error && <p className="text-xs text-red-400">{error}</p>}
 
         <Button type="submit" disabled={!canSubmit} className="h-14 w-full rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 text-base font-semibold text-white shadow-lg shadow-emerald-500/30 hover:from-emerald-400 hover:to-teal-400 disabled:opacity-40">
-          {loading ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Membuat vault...</> : <>Selesai & Masuk <ArrowRight className="ml-2 h-5 w-5" /></>}
+          {loading ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Mendaftarkan akun...</> : <>Daftar & Masuk <ArrowRight className="ml-2 h-5 w-5" /></>}
         </Button>
       </form>
     </motion.div>
