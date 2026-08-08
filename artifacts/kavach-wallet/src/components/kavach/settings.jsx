@@ -4,7 +4,7 @@
 import { useState } from 'react';
 import {
   Settings2, KeyRound, Download, Trash2, X, Eye, EyeOff, Copy,
-  AlertTriangle, ArrowLeft, RefreshCw, Lock, User, Wallet as WalletIcon,
+  AlertTriangle, ArrowLeft, RefreshCw, Lock, User, Wallet as WalletIcon, Coins,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -15,6 +15,7 @@ import { useWalletStore, selectActiveWallet } from '@/lib/store';
 import { importFromMnemonic } from '@/lib/wallet';
 import { clearVault } from '@/lib/vault';
 import { shortAddr } from './shared';
+import { TokenCreatorSheet } from './token-creator';
 
 export const SettingsSheet = ({ onClose, onWalletChanged, onFullReset, onLock }) => {
   const store = useWalletStore();
@@ -25,6 +26,7 @@ export const SettingsSheet = ({ onClose, onWalletChanged, onFullReset, onLock })
   if (screen === 'phrase') return <RevealPhraseInline mnemonic={active?.mnemonic} onBack={() => setScreen('menu')} onClose={onClose} />;
   if (screen === 'import') return <ImportInline onBack={() => setScreen('menu')} onDone={() => { onClose(); onWalletChanged?.(); }} />;
   if (screen === 'delete-all') return <DeleteAllInline onBack={() => setScreen('menu')} onConfirm={() => { clearVault(); useWalletStore.getState().lock(); useWalletStore.getState().removeAllWallets(); onClose(); onFullReset?.(); }} />;
+  if (screen === 'token') return <TokenCreatorSheet onClose={onClose} />;
 
   return (
     <Sheet onClose={onClose}>
@@ -54,6 +56,7 @@ export const SettingsSheet = ({ onClose, onWalletChanged, onFullReset, onLock })
       <div className="space-y-2">
         <MenuItem icon={KeyRound} title="Lihat Recovery Phrase" desc="Backup wallet aktif Anda" onClick={() => setScreen('phrase')} disabled={!active} />
         <MenuItem icon={Download} title="Import Wallet Lain" desc="Tambah wallet baru (tidak menggantikan yang ada)" onClick={() => setScreen('import')} />
+        <MenuItem icon={Coins} title="Buat Token ERC-20" desc="Deploy token gratis di Ethereum Sepolia testnet" onClick={() => setScreen('token')} disabled={!active} />
         <MenuItem icon={Lock} title="Kunci Vault" desc="Logout — butuh password untuk unlock lagi" onClick={() => { useWalletStore.getState().lock(); onClose(); onLock?.(); }} />
         <MenuItem icon={Trash2} title="Hapus Semua Data" desc="Hapus vault + semua wallet dari device" danger onClick={() => setScreen('delete-all')} />
       </div>
