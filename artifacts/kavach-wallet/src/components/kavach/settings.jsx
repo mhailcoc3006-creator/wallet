@@ -56,7 +56,7 @@ export const SettingsSheet = ({ onClose, onWalletChanged, onFullReset, onLock })
       <div className="space-y-2">
         <MenuItem icon={KeyRound} title="Lihat Recovery Phrase" desc="Backup wallet aktif Anda" onClick={() => setScreen('phrase')} disabled={!active} />
         <MenuItem icon={Download} title="Import Wallet Lain" desc="Tambah wallet baru (tidak menggantikan yang ada)" onClick={() => setScreen('import')} />
-        <MenuItem icon={Coins} title="Buat Token ERC-20" desc="Deploy token gratis di Ethereum Sepolia testnet" onClick={() => setScreen('token')} disabled={!active} />
+        <MenuItem icon={Coins} title="Buat Token ERC-20" desc="Deploy token murah di Base Mainnet atau gratis di Sepolia" onClick={() => setScreen('token')} disabled={!active} />
         <MenuItem icon={Lock} title="Kunci Vault" desc="Logout — butuh password untuk unlock lagi" onClick={() => { useWalletStore.getState().lock(); onClose(); onLock?.(); }} />
         <MenuItem icon={Trash2} title="Hapus Semua Data" desc="Hapus vault + semua wallet dari device" danger onClick={() => setScreen('delete-all')} />
       </div>

@@ -10,21 +10,21 @@ export const SEPOLIA_CHAIN = {
   explorer: 'https://sepolia.etherscan.io',
 };
 
-export const MAINNET_CHAIN = {
-  id: 'mainnet',
-  name: 'Ethereum Mainnet',
-  chainId: 1,
-  rpc: 'https://eth.drpc.org',
-  explorer: 'https://etherscan.io',
+export const BASE_CHAIN = {
+  id: 'base',
+  name: 'Base Mainnet',
+  chainId: 8453,
+  rpc: 'https://mainnet.base.org',
+  explorer: 'https://basescan.org',
 };
 
 export const TOKEN_NETWORKS = {
-  mainnet: MAINNET_CHAIN,
+  base: BASE_CHAIN,
   sepolia: SEPOLIA_CHAIN,
 };
 
-export function getTokenNetwork(networkId = 'mainnet') {
-  return TOKEN_NETWORKS[networkId] || MAINNET_CHAIN;
+export function getTokenNetwork(networkId = 'base') {
+  return TOKEN_NETWORKS[networkId] || BASE_CHAIN;
 }
 
 export function getSepoliaWallet(mnemonic) {
@@ -66,7 +66,7 @@ async function prepareTokenDeployment({ mnemonic, name, symbol, supply, networkI
   };
 }
 
-export async function estimateKavachToken({ mnemonic, name, symbol, supply, networkId = 'mainnet' }) {
+export async function estimateKavachToken({ mnemonic, name, symbol, supply, networkId = 'base' }) {
   const prepared = await prepareTokenDeployment({ mnemonic, name, symbol, supply, networkId });
   return {
     network: prepared.networkConfig,
@@ -78,7 +78,7 @@ export async function estimateKavachToken({ mnemonic, name, symbol, supply, netw
   };
 }
 
-export async function deployKavachToken({ mnemonic, name, symbol, supply, networkId = 'mainnet' }) {
+export async function deployKavachToken({ mnemonic, name, symbol, supply, networkId = 'base' }) {
   const prepared = await prepareTokenDeployment({ mnemonic, name, symbol, supply, networkId });
   if (prepared.estimatedCostWei && prepared.balanceWei < prepared.estimatedCostWei) {
     throw new Error(`Saldo ETH tidak cukup untuk gas. Perkiraan ${ethers.formatEther(prepared.estimatedCostWei)} ETH, saldo ${ethers.formatEther(prepared.balanceWei)} ETH.`);

@@ -17,8 +17,8 @@ export const TokenCreatorSheet = ({ onClose }) => {
   const [name, setName] = useState('');
   const [symbol, setSymbol] = useState('');
   const [supply, setSupply] = useState('');
-  const [networkId, setNetworkId] = useState('mainnet');
-  const [mainnetConfirm, setMainnetConfirm] = useState('');
+  const [networkId, setNetworkId] = useState('base');
+  const [baseConfirm, setBaseConfirm] = useState('');
   const [estimate, setEstimate] = useState(null);
   const [estimating, setEstimating] = useState(false);
   const [step, setStep] = useState('form');
@@ -68,7 +68,7 @@ export const TokenCreatorSheet = ({ onClose }) => {
 
   const deploy = async () => {
     if (!valid || !active?.mnemonic) return;
-    if (networkId === 'mainnet' && mainnetConfirm !== 'DEPLOY MAINNET') return;
+    if (networkId === 'base' && baseConfirm !== 'DEPLOY BASE') return;
     setError('');
     setStep('deploying');
     try {
@@ -95,7 +95,7 @@ export const TokenCreatorSheet = ({ onClose }) => {
           <Loader2 className="mx-auto h-12 w-12 animate-spin text-amber-400" />
           <div className="mt-4 text-lg font-bold text-white">Membuat token...</div>
           <p className="mt-2 text-sm leading-relaxed text-slate-400">
-            Transaksi sedang ditandatangani lokal dan dikirim ke Ethereum Sepolia.
+            Transaksi sedang ditandatangani lokal dan dikirim ke {network.name}.
           </p>
         </div>
       </Sheet>
@@ -154,9 +154,9 @@ export const TokenCreatorSheet = ({ onClose }) => {
         <button onClick={onClose} className="rounded-full p-1 text-slate-400 hover:text-white"><X className="h-5 w-5" /></button>
       </div>
 
-      <div className={`mb-4 flex items-start gap-2 rounded-xl border p-3 text-[11px] leading-relaxed ${networkId === 'mainnet' ? 'border-red-500/40 bg-red-500/10 text-red-100' : 'border-amber-500/30 bg-amber-500/10 text-amber-100'}`}>
-        {networkId === 'mainnet' ? <ShieldAlert className="mt-0.5 h-4 w-4 flex-shrink-0 text-red-300" /> : <FlaskConical className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-300" />}
-        <span>{networkId === 'mainnet' ? 'MAINNET: deployment memakai ETH nyata dan tidak dapat dibatalkan. Pastikan nama, simbol, supply, dan wallet deployer sudah benar.' : 'Testnet gratis. Token tidak memiliki nilai nyata. Anda membutuhkan Sepolia ETH dari faucet untuk gas.'}</span>
+      <div className={`mb-4 flex items-start gap-2 rounded-xl border p-3 text-[11px] leading-relaxed ${networkId === 'base' ? 'border-red-500/40 bg-red-500/10 text-red-100' : 'border-amber-500/30 bg-amber-500/10 text-amber-100'}`}>
+        {networkId === 'base' ? <ShieldAlert className="mt-0.5 h-4 w-4 flex-shrink-0 text-red-300" /> : <FlaskConical className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-300" />}
+        <span>{networkId === 'base' ? 'BASE MAINNET: deployment memakai ETH nyata di Base dan tidak dapat dibatalkan. Pastikan nama, simbol, supply, dan wallet deployer sudah benar.' : 'Testnet gratis. Token tidak memiliki nilai nyata. Anda membutuhkan Sepolia ETH dari faucet untuk gas.'}</span>
       </div>
 
       {!active && (
@@ -173,8 +173,8 @@ export const TokenCreatorSheet = ({ onClose }) => {
               <button
                 key={item.id}
                 type="button"
-                onClick={() => { setNetworkId(item.id); setEstimate(null); setError(''); setMainnetConfirm(''); }}
-                className={`rounded-xl border px-3 py-3 text-left text-xs transition ${networkId === item.id ? (item.id === 'mainnet' ? 'border-red-500/60 bg-red-500/10 text-red-100' : 'border-amber-500/60 bg-amber-500/10 text-amber-100') : 'border-slate-800 bg-slate-900/60 text-slate-400 hover:border-slate-700'}`}
+                onClick={() => { setNetworkId(item.id); setEstimate(null); setError(''); setBaseConfirm(''); }}
+                className={`rounded-xl border px-3 py-3 text-left text-xs transition ${networkId === item.id ? (item.id === 'base' ? 'border-red-500/60 bg-red-500/10 text-red-100' : 'border-amber-500/60 bg-amber-500/10 text-amber-100') : 'border-slate-800 bg-slate-900/60 text-slate-400 hover:border-slate-700'}`}
               >
                 <div className="font-semibold">{item.name}</div>
                 <div className="mt-1 text-[10px] opacity-70">Chain ID {item.chainId}</div>
@@ -215,19 +215,19 @@ export const TokenCreatorSheet = ({ onClose }) => {
         )}
       </div>
 
-      {networkId === 'mainnet' && (
+      {networkId === 'base' && (
         <div className="mt-4 rounded-xl border border-red-500/30 bg-red-500/5 p-3">
           <div className="text-[10px] uppercase tracking-widest text-red-300">Konfirmasi transaksi nyata</div>
-          <div className="mt-1 text-[11px] leading-relaxed text-slate-400">Ketik persis <span className="font-mono font-bold text-red-200">DEPLOY MAINNET</span> untuk mengaktifkan deployment.</div>
-          <Input value={mainnetConfirm} onChange={(e) => setMainnetConfirm(e.target.value)} placeholder="DEPLOY MAINNET" className="mt-2 h-11 rounded-xl border-red-500/30 bg-slate-950/70 font-mono text-xs text-white placeholder:text-slate-600" />
+          <div className="mt-1 text-[11px] leading-relaxed text-slate-400">Ketik persis <span className="font-mono font-bold text-red-200">DEPLOY BASE</span> untuk mengaktifkan deployment.</div>
+          <Input value={baseConfirm} onChange={(e) => setBaseConfirm(e.target.value)} placeholder="DEPLOY BASE" className="mt-2 h-11 rounded-xl border-red-500/30 bg-slate-950/70 font-mono text-xs text-white placeholder:text-slate-600" />
         </div>
       )}
 
       <Button onClick={checkGas} disabled={!valid || estimating} variant="outline" className="mt-5 h-12 w-full rounded-xl border-slate-700 bg-slate-900/60 text-slate-200 hover:bg-slate-800 disabled:opacity-40">
         {estimating ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Menghitung gas...</> : <>Cek saldo & estimasi gas</>}
       </Button>
-      <Button onClick={deploy} disabled={!valid || step === 'deploying' || (networkId === 'mainnet' && mainnetConfirm !== 'DEPLOY MAINNET')} className={`h-13 w-full rounded-2xl py-3 text-base font-semibold text-white shadow-lg disabled:opacity-40 ${networkId === 'mainnet' ? 'bg-gradient-to-r from-red-600 to-orange-600 shadow-red-500/20 hover:from-red-500 hover:to-orange-500' : 'bg-gradient-to-r from-amber-500 to-orange-500 shadow-amber-500/20 hover:from-amber-400 hover:to-orange-400'}`}>
-        {networkId === 'mainnet' ? 'Deploy Token ke Ethereum Mainnet' : 'Deploy Token ke Sepolia'}
+      <Button onClick={deploy} disabled={!valid || step === 'deploying' || (networkId === 'base' && baseConfirm !== 'DEPLOY BASE')} className={`h-13 w-full rounded-2xl py-3 font-semibold text-white shadow-lg disabled:opacity-40 ${networkId === 'base' ? 'bg-gradient-to-r from-red-600 to-orange-600 shadow-red-500/20 hover:from-red-500 hover:to-orange-500' : 'bg-gradient-to-r from-amber-500 to-orange-500 shadow-amber-500/20 hover:from-amber-400 hover:to-orange-400'}`}>
+        {networkId === 'base' ? 'Deploy Token ke Base Mainnet' : 'Deploy Token ke Sepolia'}
       </Button>
       {networkId === 'sepolia' && (
         <a href="https://sepoliafaucet.com/" target="_blank" rel="noreferrer" className="mt-3 block text-center text-[11px] text-cyan-400 hover:text-cyan-300">
