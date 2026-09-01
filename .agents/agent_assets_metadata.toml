@@ -1,0 +1,9 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "wLn8iY_V4e-FT9_jS81wf"
+uri = "file://artifacts/kavach-wallet/public/cavendish-logo.jpg"
+type = "image"
+title = "Cavendish Logo JPG"
+description = "Logo Cavendish 1200×1200 dengan latar hitam dan aksen hijau stabilo."
