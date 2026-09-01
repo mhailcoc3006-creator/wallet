@@ -7,3 +7,10 @@ uri = "file://artifacts/kavach-wallet/public/cavendish-logo.jpg"
 type = "image"
 title = "Cavendish Logo JPG"
 description = "Logo Cavendish 1200×1200 dengan latar hitam dan aksen hijau stabilo."
+
+[[outputs]]
+id = "lJjVXa1qURZFf9f2eRl_A"
+uri = "file://artifacts/kavach-wallet/public/cavendish-logo-hd.jpg"
+type = "image"
+title = "Cavendish Logo HD JPG"
+description = "Logo Cavendish HD 4096×4096 yang dirasterisasi langsung dari SVG vektor untuk hasil lebih tajam."
