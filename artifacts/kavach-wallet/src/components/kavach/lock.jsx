@@ -53,7 +53,7 @@ export const LockScreen = ({ onUnlocked, onReset }) => {
       <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} className="flex flex-col items-center gap-4 text-center">
         <BrandMark size={72} />
         <div>
-          <div className="text-xs uppercase tracking-[0.3em] text-emerald-400/80">Welcome back</div>
+            <div className="text-xs uppercase tracking-[0.3em] text-lime-300/90">Welcome back</div>
           <div className="mt-1 text-3xl font-bold text-white">Halo, {userName}</div>
           <div className="mt-2 text-sm text-slate-400">Masukkan password untuk membuka vault Anda</div>
         </div>
@@ -68,7 +68,7 @@ export const LockScreen = ({ onUnlocked, onReset }) => {
             onChange={(e) => { setPassword(e.target.value); setError(''); }}
             placeholder="Password akun"
             autoFocus
-            className="h-14 rounded-2xl border-slate-700 bg-slate-900/70 pl-12 pr-12 text-sm text-white placeholder:text-slate-500 focus-visible:ring-emerald-500"
+            className="h-14 rounded-2xl border-slate-700 bg-slate-900/70 pl-12 pr-12 text-sm text-white placeholder:text-slate-500 focus-visible:ring-lime-400"
           />
           <button type="button" onClick={() => setShow(!show)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white">
             {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -85,7 +85,7 @@ export const LockScreen = ({ onUnlocked, onReset }) => {
         <Button
           type="submit"
           disabled={loading || !password}
-          className="h-14 w-full rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 text-base font-semibold text-white shadow-lg shadow-emerald-500/30 hover:from-emerald-400 hover:to-teal-400 disabled:opacity-40"
+          className="h-14 w-full rounded-2xl bg-lime-400 text-base font-semibold text-slate-950 shadow-lg shadow-lime-400/25 hover:bg-lime-300 disabled:opacity-40"
         >
           {loading ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Membuka...</> : <>Login</>}
         </Button>
@@ -96,7 +96,7 @@ export const LockScreen = ({ onUnlocked, onReset }) => {
       </button>
 
       <div className="mt-auto pt-8 text-center text-[10px] uppercase tracking-widest text-slate-600">
-        Kavach • Vault ter-enkripsi AES-GCM 256
+        Cavendish • Vault ter-enkripsi AES-GCM 256
       </div>
     </motion.div>
   );

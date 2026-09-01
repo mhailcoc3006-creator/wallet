@@ -49,7 +49,7 @@ export const WatchlistTab = () => {
         s.markAlertTriggered(a.id);
         toast.success(`🔔 ${a.symbol} ${a.direction === 'above' ? 'naik ke' : 'turun ke'} ${fmtUsd(cur)} (target ${fmtUsd(a.threshold)})`, { duration: 10000 });
         if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
-          try { new Notification('Kavach — Price Alert', { body: `${a.symbol} ${a.direction === 'above' ? '>=' : '<='} ${fmtUsd(a.threshold)} • sekarang ${fmtUsd(cur)}` }); } catch {}
+          try { new Notification('Cavendish — Price Alert', { body: `${a.symbol} ${a.direction === 'above' ? '>=' : '<='} ${fmtUsd(a.threshold)} • sekarang ${fmtUsd(cur)}` }); } catch {}
         }
       }
     }

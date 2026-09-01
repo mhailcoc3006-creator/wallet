@@ -184,7 +184,7 @@ export const TokenCreatorSheet = ({ onClose }) => {
         </div>
         <div>
           <div className="mb-1.5 text-[10px] uppercase tracking-widest text-slate-500">Nama token</div>
-          <Input value={name} onChange={(e) => setName(e.target.value.slice(0, 32))} placeholder="Contoh: Kavach Token" className="h-12 rounded-xl border-slate-700 bg-slate-900/70 text-sm text-white placeholder:text-slate-600" />
+          <Input value={name} onChange={(e) => setName(e.target.value.slice(0, 32))} placeholder="Contoh: Cavendish Token" className="h-12 rounded-xl border-slate-700 bg-slate-900/70 text-sm text-white placeholder:text-slate-600" />
         </div>
         <div>
           <div className="mb-1.5 text-[10px] uppercase tracking-widest text-slate-500">Simbol</div>

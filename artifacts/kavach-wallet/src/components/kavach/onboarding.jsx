@@ -18,14 +18,15 @@ import { Brand, BrandMark } from './shared';
 import { createWallet, importFromMnemonic } from '@/lib/wallet';
 
 export const Splash = () => (
-  <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950">
+  <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#050806]">
+    <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(215,255,0,0.08),transparent_27%)]" />
     <motion.div initial={{ scale: 0.85, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.6 }} className="flex flex-col items-center gap-6">
       <motion.div animate={{ rotate: [0, 8, -8, 0] }} transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}>
         <BrandMark size={88} />
       </motion.div>
       <div className="text-center">
-        <div className="text-3xl font-bold tracking-tight text-white">Kavach</div>
-        <div className="mt-1 text-xs uppercase tracking-[0.35em] text-emerald-400">Your crypto shield</div>
+        <div className="text-3xl font-bold tracking-tight text-white">Cavendish</div>
+        <div className="mt-1 text-xs uppercase tracking-[0.35em] text-lime-300">Your private wallet</div>
       </div>
     </motion.div>
   </div>
@@ -54,11 +55,11 @@ export const Welcome = ({ onCreate, onImport, onLogin, hasVault }) => (
   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="mx-auto flex min-h-screen max-w-md flex-col px-6 py-10">
     <div className="flex items-center justify-between">
       <Brand />
-      <Badge variant="outline" className="border-emerald-500/40 text-emerald-400">Non-custodial</Badge>
+      <Badge variant="outline" className="border-lime-400/50 text-lime-300">Non-custodial</Badge>
     </div>
     <div className="flex flex-1 flex-col justify-center py-12">
       <h1 className="text-4xl font-bold leading-tight tracking-tight text-white">
-        Wallet crypto <span className="bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">yang benar-benar milik Anda.</span>
+        Wallet crypto <span className="bg-gradient-to-r from-lime-300 to-lime-500 bg-clip-text text-transparent">yang benar-benar milik Anda.</span>
       </h1>
       <p className="mt-4 text-base leading-relaxed text-slate-400">
         Kelola aset di 10 chain — Bitcoin, Ethereum, Solana, BNB, Polygon, Arbitrum, Optimism, Base, Avalanche, Tron — dari satu recovery phrase.
@@ -70,7 +71,7 @@ export const Welcome = ({ onCreate, onImport, onLogin, hasVault }) => (
       </div>
     </div>
     <div className="space-y-3">
-      <Button onClick={onCreate} className="h-14 w-full rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 text-base font-semibold text-white shadow-lg shadow-emerald-500/30 hover:from-emerald-400 hover:to-teal-400">
+      <Button onClick={onCreate} className="h-14 w-full rounded-2xl bg-lime-400 text-base font-semibold text-slate-950 shadow-lg shadow-lime-400/25 hover:bg-lime-300">
         <Sparkles className="mr-2 h-5 w-5" /> Daftar Akun & Buat Wallet
       </Button>
       <Button onClick={onImport} variant="outline" className="h-14 w-full rounded-2xl border-slate-700 bg-slate-900/60 text-base font-semibold text-white hover:bg-slate-800">
@@ -254,7 +255,7 @@ export const SetupPassword = ({ onBack, onDone }) => {
 
   return (
     <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }} className="mx-auto flex min-h-screen max-w-md flex-col px-6 py-10">
-      <ScreenHeader onBack={onBack} title="Daftar Akun Kavach" subtitle="Buat nama akun dan password vault. Semua wallet Anda dienkripsi dengan password ini di device." />
+      <ScreenHeader onBack={onBack} title="Daftar Akun Cavendish" subtitle="Buat nama akun dan password vault. Semua wallet Anda dienkripsi dengan password ini di device." />
 
       <form onSubmit={submit} className="space-y-4">
         <div>

@@ -181,7 +181,7 @@ const KavachApp = () => {
             });
             if (typeof window !== 'undefined' && 'Notification' in window) {
               if (Notification.permission === 'granted') {
-                try { new Notification(`Kavach Signal · Grade ${r.grade}`, { body: `${r.symbol} ${r.signal} at $${r.entry}` }); } catch {}
+                try { new Notification(`Cavendish Signal · Grade ${r.grade}`, { body: `${r.symbol} ${r.signal} at $${r.entry}` }); } catch {}
               } else if (Notification.permission === 'default') {
                 Notification.requestPermission().catch(() => {});
               }
@@ -223,7 +223,7 @@ const KavachApp = () => {
   if (!hydrated || view === 'splash') return <Splash />;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+    <div className="min-h-screen bg-[#050806]">
       <AnimatePresence mode="wait">
         {view === 'lock' && (
           <LockScreen
@@ -391,8 +391,8 @@ const BottomNav = ({ tab, setTab }) => {
             const Icon = it.icon;
             const isPS = it.id === 'padasankara';
             const isSig = it.id === 'signal';
-            const activeColor = isPS ? 'text-fuchsia-400' : isSig ? 'text-cyan-400' : 'text-emerald-400';
-            const shadow = isPS ? 'drop-shadow-[0_0_8px_rgb(232,121,249)]' : isSig ? 'drop-shadow-[0_0_8px_rgb(34,211,238)]' : 'drop-shadow-[0_0_8px_rgb(52,211,153)]';
+            const activeColor = isPS ? 'text-fuchsia-400' : isSig ? 'text-cyan-400' : 'text-lime-300';
+            const shadow = isPS ? 'drop-shadow-[0_0_8px_rgb(232,121,249)]' : isSig ? 'drop-shadow-[0_0_8px_rgb(34,211,238)]' : 'drop-shadow-[0_0_8px_rgb(215,255,0)]';
             return (
               <button
                 key={it.id}

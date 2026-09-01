@@ -163,7 +163,7 @@ export const SendSheet = ({ addresses, balances, prices, mnemonic, defaultChainI
           <div className="mt-4 rounded-xl border border-slate-800 bg-slate-900/50 p-3">
             <div className="flex items-start gap-2 text-xs text-slate-300">
               <ChainIcon chain={chain} size={20} />
-              <span>Transaksi akan ditandatangani dengan private key di device Anda dan dibroadcast langsung ke jaringan {chain.name}. Kavach tidak menerima kunci Anda.</span>
+              <span>Transaksi akan ditandatangani dengan private key di device Anda dan dibroadcast langsung ke jaringan {chain.name}. Cavendish tidak menerima kunci Anda.</span>
             </div>
           </div>
 

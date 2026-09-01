@@ -1,6 +1,6 @@
 kind = "web"
 previewPath = "/"
-title = "Kavach Wallet"
+title = "Cavendish Wallet"
 version = "1.0.0"
 id = "artifacts/kavach-wallet"
 router = "path"
