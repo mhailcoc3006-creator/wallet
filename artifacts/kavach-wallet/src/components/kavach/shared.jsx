@@ -1,6 +1,6 @@
 'use client';
 
-const BRAND_LOGO_SRC = '/cavendish-rounded-feather-logo-4k.jpg';
+const BRAND_LOGO_SRC = '/cavendish-angular-feather-logo-4k.jpg';
 
 export const BrandMark = ({ size = 40 }) => (
   <div

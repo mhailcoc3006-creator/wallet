@@ -49,3 +49,10 @@ uri = "file://artifacts/kavach-wallet/public/cavendish-rounded-feather-logo-4k.j
 type = "image"
 title = "Cavendish Rounded Feather Logo 4K"
 description = "Versi 4K dengan ujung feather-arrow membulat dan tumpul seperti referensi."
+
+[[outputs]]
+id = "QGH0xJM8PyMvtPBGgyy6E"
+uri = "file://artifacts/kavach-wallet/public/cavendish-angular-feather-logo-4k.jpg"
+type = "image"
+title = "Cavendish Angular Feather Logo 4K"
+description = "Versi 4K dengan ujung simbol patah dan bersudut seperti referensi, bukan rounded."
