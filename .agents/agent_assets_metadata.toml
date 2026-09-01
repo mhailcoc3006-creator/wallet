@@ -35,3 +35,10 @@ uri = "file://attached_assets/generated_images/cavendish-feather-arrow-logo.jpg"
 type = "image"
 title = "Cavendish Feather Arrow Logo"
 description = "Logo Cavendish dengan gaya ikon lime rounded-square dan simbol feather-arrow hitam modern, terinspirasi referensi namun tetap orisinal."
+
+[[outputs]]
+id = "OJGxyY-hqaE-mA1zqmSKI"
+uri = "file://artifacts/kavach-wallet/public/cavendish-feather-arrow-logo-4k.jpg"
+type = "image"
+title = "Cavendish Feather Arrow Logo 4K"
+description = "Versi 4K logo Cavendish berukuran 4096×4096 dalam format JPG."
