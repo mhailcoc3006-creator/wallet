@@ -14,3 +14,10 @@ uri = "file://artifacts/kavach-wallet/public/cavendish-logo-hd.jpg"
 type = "image"
 title = "Cavendish Logo HD JPG"
 description = "Logo Cavendish HD 4096×4096 yang dirasterisasi langsung dari SVG vektor untuk hasil lebih tajam."
+
+[[outputs]]
+id = "lJcU8gW4j-0eCubBqGElf"
+uri = "file://attached_assets/generated_images/cavendish-elegant-logo.jpg"
+type = "image"
+title = "Cavendish Elegant Logo"
+description = "Alternatif logo Cavendish yang lebih elegan dengan monogram C dan aksen daun subtil dalam format JPG HD."
