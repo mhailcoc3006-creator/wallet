@@ -274,10 +274,10 @@ const KavachApp = () => {
             <div className="mb-5 flex items-center justify-between">
               <Brand size={36} />
               <div className="flex gap-1">
-                <Button size="icon" variant="ghost" onClick={() => loadData()} className="h-9 w-9 rounded-full text-slate-300 hover:bg-slate-800 hover:text-white">
+                <Button size="icon" variant="ghost" onClick={() => loadData()} className="h-9 w-9 rounded-full text-slate-300 hover:bg-lime-400/10 hover:text-lime-300">
                   <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
                 </Button>
-                <Button size="icon" variant="ghost" onClick={() => setShowAlerts(true)} className="relative h-9 w-9 rounded-full text-slate-300 hover:bg-slate-800 hover:text-white">
+                <Button size="icon" variant="ghost" onClick={() => setShowAlerts(true)} className="relative h-9 w-9 rounded-full text-slate-300 hover:bg-lime-400/10 hover:text-lime-300">
                   <Bell className="h-4 w-4" />
                   {store.signalAlerts.filter((a) => !a.seen).length > 0 && (
                     <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-cyan-500 px-1 text-[9px] font-bold text-white">
@@ -285,7 +285,7 @@ const KavachApp = () => {
                     </span>
                   )}
                 </Button>
-                <Button size="icon" variant="ghost" onClick={() => setShowSettings(true)} className="h-9 w-9 rounded-full text-slate-300 hover:bg-slate-800 hover:text-white">
+                <Button size="icon" variant="ghost" onClick={() => setShowSettings(true)} className="h-9 w-9 rounded-full text-slate-300 hover:bg-lime-400/10 hover:text-lime-300">
                   <Settings2 className="h-4 w-4" />
                 </Button>
               </div>
@@ -384,7 +384,7 @@ const BottomNav = ({ tab, setTab }) => {
   ];
   return (
     <div className="fixed inset-x-0 bottom-0 z-40">
-      <div className="mx-auto max-w-md border-t border-slate-800/70 bg-slate-950/95 px-1 backdrop-blur-md">
+      <div className="mx-auto max-w-md border-t border-lime-400/15 bg-[#050806]/95 px-1 shadow-[0_-12px_30px_rgba(0,0,0,0.25)] backdrop-blur-md">
         <div className="grid grid-cols-6">
           {items.map((it) => {
             const active = tab === it.id;
@@ -397,7 +397,7 @@ const BottomNav = ({ tab, setTab }) => {
               <button
                 key={it.id}
                 onClick={() => setTab(it.id)}
-                className={`flex flex-col items-center gap-1 py-3 text-[9px] font-medium transition ${active ? activeColor : 'text-slate-500 hover:text-slate-300'}`}
+                 className={`flex flex-col items-center gap-1 py-3 text-[9px] font-medium transition ${active ? activeColor : 'text-slate-500 hover:text-lime-200'}`}
               >
                 <Icon className={`h-5 w-5 ${active ? shadow : ''}`} />
                 <span className="uppercase tracking-wider">{it.label}</span>

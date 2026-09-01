@@ -85,10 +85,10 @@ export const SwapTab = ({ mnemonic, addresses, balances, prices }) => {
 
   return (
     <div className="space-y-4">
-      <Card className="border-slate-800 bg-gradient-to-br from-slate-900 via-slate-900 to-emerald-950 p-5">
+      <Card className="border-lime-400/15 bg-gradient-to-br from-[#101610] via-[#0b100c] to-[#172100] p-5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="rounded-xl bg-emerald-500/20 p-2"><ArrowDownUp className="h-5 w-5 text-emerald-400" /></div>
+            <div className="rounded-xl bg-lime-400/15 p-2"><ArrowDownUp className="h-5 w-5 text-lime-300" /></div>
             <div>
               <div className="text-sm font-semibold text-white">Swap</div>
               <div className="text-xs text-slate-400">Best rate via LI.FI • signing lokal</div>
@@ -106,7 +106,7 @@ export const SwapTab = ({ mnemonic, addresses, balances, prices }) => {
       <TokenPanel label="Dari" token={fromToken} amount={amount} onAmount={setAmount} balance={isNative ? nativeBalance : null} onPick={() => setShowTokenPicker('from')} />
 
       <div className="flex justify-center">
-        <button onClick={swapSides} className="rounded-xl border border-slate-800 bg-slate-950 p-2 text-slate-400 hover:text-emerald-400">
+        <button onClick={swapSides} className="rounded-xl border border-lime-400/15 bg-[#050806] p-2 text-slate-400 hover:text-lime-300">
           <ArrowDownUp className="h-4 w-4" />
         </button>
       </div>
@@ -130,7 +130,7 @@ export const SwapTab = ({ mnemonic, addresses, balances, prices }) => {
       <Button
         onClick={execute}
         disabled={!quote || executing || quoting}
-        className="h-14 w-full rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 text-base font-semibold text-white shadow-lg shadow-emerald-500/30 hover:from-emerald-400 hover:to-teal-400 disabled:opacity-40"
+        className="h-14 w-full rounded-2xl bg-lime-400 text-base font-semibold text-slate-950 shadow-lg shadow-lime-400/20 hover:bg-lime-300 disabled:opacity-40"
       >
         {executing ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Mengirim...</> : quoting ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Cek harga...</> : <><Zap className="mr-2 h-5 w-5" /> Swap Sekarang</>}
       </Button>
@@ -144,8 +144,8 @@ export const SwapTab = ({ mnemonic, addresses, balances, prices }) => {
             <button onClick={() => setShowChain(false)} className="rounded-full p-1 text-slate-400 hover:text-white"><X className="h-5 w-5" /></button>
           </div>
           <div className="grid grid-cols-2 gap-2">
-            {EVM_CHAINS.map((c) => (
-              <button key={c.id} onClick={() => { setChainId(c.id); setShowChain(false); }} className={`flex items-center gap-3 rounded-xl border p-3 text-left transition ${chainId === c.id ? 'border-emerald-500/60 bg-emerald-500/10' : 'border-slate-800 bg-slate-900/60 hover:bg-slate-900'}`}>
+              {EVM_CHAINS.map((c) => (
+              <button key={c.id} onClick={() => { setChainId(c.id); setShowChain(false); }} className={`flex items-center gap-3 rounded-xl border p-3 text-left transition ${chainId === c.id ? 'border-lime-300/70 bg-lime-400/10' : 'border-slate-800 bg-slate-900/60 hover:bg-slate-900'}`}>
                 <ChainIcon chain={c} size={30} />
                 <span className="text-sm font-medium text-white">{c.name}</span>
               </button>
@@ -184,13 +184,13 @@ export const SwapTab = ({ mnemonic, addresses, balances, prices }) => {
       {result && (
         <Sheet onClose={() => { setResult(null); setAmount(''); setQuote(null); }}>
           <div className="py-4 text-center">
-            <CheckCircle2 className="mx-auto h-14 w-14 text-emerald-400" />
+            <CheckCircle2 className="mx-auto h-14 w-14 text-lime-300" />
             <div className="mt-4 text-lg font-bold text-white">Swap terkirim</div>
             <div className="mt-2 text-sm text-slate-400">{fmtNum(amount)} {fromToken.symbol} → {toAmount ? fmtNum(toAmount) : ''} {toToken.symbol}</div>
             <a href={result.explorer} target="_blank" rel="noreferrer" className="mt-5 inline-flex items-center gap-2 rounded-xl bg-slate-800 px-4 py-2.5 text-sm text-white hover:bg-slate-700">
               Lihat di Explorer <ExternalLink className="h-4 w-4" />
             </a>
-            <Button onClick={() => { setResult(null); setAmount(''); setQuote(null); }} className="mt-4 h-12 w-full rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white hover:from-emerald-400 hover:to-teal-400">Selesai</Button>
+            <Button onClick={() => { setResult(null); setAmount(''); setQuote(null); }} className="mt-4 h-12 w-full rounded-xl bg-lime-400 text-slate-950 hover:bg-lime-300">Selesai</Button>
           </div>
         </Sheet>
       )}

@@ -57,7 +57,7 @@ export const WatchlistTab = () => {
 
   return (
     <div className="space-y-4">
-      <Card className="border-slate-800 bg-gradient-to-br from-slate-900 via-slate-900 to-purple-950 p-5">
+      <Card className="border-lime-400/15 bg-gradient-to-br from-[#101610] via-[#0b100c] to-[#172100] p-5">
         <div className="flex items-center justify-between">
           <div>
             <div className="text-sm font-semibold text-white">Watchlist</div>
@@ -67,7 +67,7 @@ export const WatchlistTab = () => {
             <Button size="sm" variant="outline" onClick={() => setShowAlerts(true)} className="border-slate-700 bg-slate-900/60 text-slate-200 hover:bg-slate-800">
               <Bell className="mr-1.5 h-3.5 w-3.5" /> {alerts.length}
             </Button>
-            <Button size="sm" onClick={() => setShowAdd(true)} className="bg-emerald-500/20 text-emerald-100 hover:bg-emerald-500/30">
+            <Button size="sm" onClick={() => setShowAdd(true)} className="bg-lime-400 text-slate-950 hover:bg-lime-300">
               <Plus className="mr-1.5 h-3.5 w-3.5" /> Token
             </Button>
           </div>

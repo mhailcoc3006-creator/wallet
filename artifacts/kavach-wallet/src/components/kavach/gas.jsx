@@ -45,11 +45,11 @@ export const GasTab = ({ prices }) => {
 
   return (
     <div className="space-y-4">
-      <Card className="border-slate-800 bg-gradient-to-br from-slate-900 via-slate-900 to-cyan-950 p-5">
+      <Card className="border-lime-400/15 bg-gradient-to-br from-[#101610] via-[#0b100c] to-[#172100] p-5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="rounded-xl bg-cyan-500/20 p-2">
-              <Fuel className="h-5 w-5 text-cyan-400" />
+            <div className="rounded-xl bg-lime-400/15 p-2">
+              <Fuel className="h-5 w-5 text-lime-300" />
             </div>
             <div>
               <div className="text-sm font-semibold text-white">Gas Fee Estimator</div>
@@ -61,7 +61,7 @@ export const GasTab = ({ prices }) => {
           </Button>
         </div>
         {cheapest && (
-          <div className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-200">
+          <div className="mt-4 rounded-xl border border-lime-300/30 bg-lime-400/10 p-3 text-xs text-lime-100">
             ⚡ Chain termurah saat ini: <span className="font-bold">{cheapest.chain.name}</span> ({fmtUsd(cheapest.usdCost)})
           </div>
         )}

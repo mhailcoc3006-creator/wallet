@@ -78,15 +78,15 @@ export const PadaSankaraTab = () => {
 
   return (
     <div className="space-y-4">
-      <Card className="border-slate-800 bg-gradient-to-br from-slate-900 via-slate-900 to-fuchsia-950 p-5">
+      <Card className="border-lime-400/15 bg-gradient-to-br from-[#101610] via-[#0b100c] to-[#172100] p-5">
         <div className="flex items-start gap-3">
-          <div className="rounded-xl bg-fuchsia-500/20 p-2">
-            <Sparkles className="h-5 w-5 text-fuchsia-400" />
+          <div className="rounded-xl bg-lime-400/15 p-2">
+            <Sparkles className="h-5 w-5 text-lime-300" />
           </div>
           <div className="flex-1">
             <div className="flex items-center gap-2">
               <div className="text-sm font-bold text-white">Buat Wallet BIP-39</div>
-              <Badge className="h-4 bg-fuchsia-500/20 px-1.5 py-0 text-[9px] text-fuchsia-300 hover:bg-fuchsia-500/20">Private</Badge>
+              <Badge className="h-4 bg-lime-400/15 px-1.5 py-0 text-[9px] text-lime-300 hover:bg-lime-400/20">Private</Badge>
             </div>
             <div className="mt-1 text-xs leading-relaxed text-slate-400">
               Generator wallet baru menggunakan seluruh wordlist BIP-39 dan entropy aman dari browser Anda.
@@ -111,14 +111,14 @@ export const PadaSankaraTab = () => {
         <div className="mb-2 text-xs uppercase tracking-widest text-slate-500">Panjang recovery phrase</div>
         <div className="grid grid-cols-2 gap-2">
           {[12, 24].map((count) => (
-            <button
+          <button
               key={count}
               type="button"
               onClick={() => setWordCount(count)}
               disabled={generating}
               className={`rounded-xl border px-3 py-3 text-left transition ${
                 wordCount === count
-                  ? 'border-fuchsia-500/60 bg-fuchsia-500/10 text-white'
+                  ? 'border-lime-300/70 bg-lime-400/10 text-white'
                   : 'border-slate-800 bg-slate-900/60 text-slate-400 hover:border-slate-700'
               } disabled:opacity-40`}
             >
@@ -132,7 +132,7 @@ export const PadaSankaraTab = () => {
       <Button
         onClick={generate}
         disabled={generating}
-        className="h-14 w-full rounded-2xl bg-gradient-to-r from-fuchsia-500 to-purple-600 text-base font-semibold text-white shadow-lg shadow-fuchsia-500/30 hover:from-fuchsia-400 hover:to-purple-500 disabled:opacity-40"
+        className="h-14 w-full rounded-2xl bg-lime-400 text-base font-semibold text-slate-950 shadow-lg shadow-lime-400/20 hover:bg-lime-300 disabled:opacity-40"
       >
         {generating ? (
           <><RefreshCw className="mr-2 h-5 w-5 animate-spin" /> Membuat wallet...</>
@@ -142,9 +142,9 @@ export const PadaSankaraTab = () => {
       </Button>
 
       {generated && (
-        <Card className="border-emerald-500/30 bg-emerald-500/5 p-4">
+          <Card className="border-lime-300/30 bg-lime-400/5 p-4">
           <div className="flex items-center gap-2">
-            <CheckCircle2 className="h-5 w-5 text-emerald-400" />
+            <CheckCircle2 className="h-5 w-5 text-lime-300" />
             <div>
               <div className="text-sm font-semibold text-white">Wallet berhasil dibuat</div>
               <div className="text-[10px] text-slate-500">Sudah disimpan ke vault terenkripsi Anda</div>

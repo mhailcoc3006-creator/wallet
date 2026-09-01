@@ -32,7 +32,7 @@ export const SettingsSheet = ({ onClose, onWalletChanged, onFullReset, onLock })
     <Sheet onClose={onClose}>
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Settings2 className="h-5 w-5 text-emerald-400" />
+          <Settings2 className="h-5 w-5 text-lime-300" />
           <div className="text-lg font-bold text-white">Pengaturan</div>
         </div>
         <button onClick={onClose} className="rounded-full p-1 text-slate-400 hover:text-white"><X className="h-5 w-5" /></button>
@@ -70,7 +70,7 @@ const MenuItem = ({ icon: Icon, title, desc, danger, onClick, disabled }) => (
     disabled={disabled}
     className={`flex w-full items-center gap-3 rounded-2xl border p-4 text-left transition disabled:opacity-40 ${danger ? 'border-red-500/20 bg-red-500/5 hover:bg-red-500/10' : 'border-slate-800 bg-slate-900/60 hover:bg-slate-900'}`}
   >
-    <div className={`rounded-xl p-2 ${danger ? 'bg-red-500/20 text-red-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
+    <div className={`rounded-xl p-2 ${danger ? 'bg-red-500/20 text-red-400' : 'bg-lime-400/15 text-lime-300'}`}>
       <Icon className="h-4 w-4" />
     </div>
     <div className="flex-1">
@@ -103,7 +103,7 @@ const RevealPhraseInline = ({ mnemonic, onBack, onClose }) => {
       <div className="relative">
         {!revealed && (
           <button onClick={() => setRevealed(true)} className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 rounded-2xl bg-slate-900/95 backdrop-blur-sm">
-            <Eye className="h-6 w-6 text-emerald-400" />
+            <Eye className="h-6 w-6 text-lime-300" />
             <span className="text-sm text-slate-200">Ketuk untuk mengungkap</span>
           </button>
         )}
@@ -159,7 +159,7 @@ const ImportInline = ({ onBack, onDone }) => {
           <p className="text-xs text-red-200">{error}</p>
         </div>
       )}
-      <Button onClick={handle} disabled={loading || !phrase.trim()} className="mt-5 h-13 w-full rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 py-3 text-base font-semibold text-white hover:from-emerald-400 hover:to-teal-400 disabled:opacity-40">
+      <Button onClick={handle} disabled={loading || !phrase.trim()} className="mt-5 h-13 w-full rounded-2xl bg-lime-400 py-3 text-base font-semibold text-slate-950 hover:bg-lime-300 disabled:opacity-40">
         {loading ? <><RefreshCw className="mr-2 h-4 w-4 animate-spin" /> Menambah...</> : <>Tambah Wallet</>}
       </Button>
     </Sheet>

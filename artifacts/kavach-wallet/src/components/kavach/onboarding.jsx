@@ -46,7 +46,7 @@ const ScreenHeader = ({ onBack, title, subtitle }) => (
 
 const FeaturePill = ({ icon: Icon, label }) => (
   <div className="flex flex-col items-center gap-2 rounded-2xl border border-slate-800 bg-slate-900/60 p-3">
-    <Icon className="h-5 w-5 text-emerald-400" />
+    <Icon className="h-5 w-5 text-lime-300" />
     <span className="text-xs text-slate-300">{label}</span>
   </div>
 );
@@ -89,7 +89,7 @@ export const Welcome = ({ onCreate, onImport, onLogin, hasVault }) => (
 
 const InfoRow = ({ icon: Icon, text }) => (
   <div className="flex items-start gap-3 rounded-xl border border-slate-800 bg-slate-900/50 px-4 py-3 text-left">
-    <Icon className="mt-0.5 h-4 w-4 flex-shrink-0 text-emerald-400" />
+    <Icon className="mt-0.5 h-4 w-4 flex-shrink-0 text-lime-300" />
     <span className="text-xs leading-relaxed text-slate-300">{text}</span>
   </div>
 );
@@ -107,8 +107,8 @@ export const CreateWallet = ({ onBack, onGenerated }) => {
       <ScreenHeader onBack={onBack} title="Buat Wallet Baru" subtitle="12 kata rahasia adalah SATU-SATUNYA cara memulihkan wallet Anda." />
       <div className="flex flex-1 flex-col items-center justify-center gap-8 text-center">
         <div className="relative">
-          <div className="absolute inset-0 animate-pulse rounded-full bg-emerald-500/20 blur-2xl" />
-          <div className="relative rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 p-6 shadow-xl shadow-emerald-500/30">
+          <div className="absolute inset-0 animate-pulse rounded-full bg-lime-400/15 blur-2xl" />
+          <div className="relative rounded-full bg-lime-400 p-6 text-slate-950 shadow-xl shadow-lime-400/20">
             <KeyRound className="h-14 w-14 text-white" />
           </div>
         </div>
@@ -118,7 +118,7 @@ export const CreateWallet = ({ onBack, onGenerated }) => {
           <InfoRow icon={AlertTriangle} text="Simpan recovery phrase di tempat aman." />
         </div>
       </div>
-      <Button onClick={handle} disabled={generating} className="h-14 w-full rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 text-base font-semibold text-white shadow-lg shadow-emerald-500/30 hover:from-emerald-400 hover:to-teal-400">
+      <Button onClick={handle} disabled={generating} className="h-14 w-full rounded-2xl bg-lime-400 text-base font-semibold text-slate-950 shadow-lg shadow-lime-400/20 hover:bg-lime-300">
         {generating ? <><RefreshCw className="mr-2 h-5 w-5 animate-spin" /> Membuat...</> : <>Generate Recovery Phrase <ArrowRight className="ml-2 h-5 w-5" /></>}
       </Button>
     </motion.div>
@@ -140,7 +140,7 @@ const ConfirmPhrase = ({ expected, onBack, onConfirmed }) => {
       <div className="flex-1" />
       <div className="flex gap-3">
         <Button variant="outline" onClick={onBack} className="h-14 flex-1 rounded-2xl border-slate-700 bg-slate-900/60 text-slate-200 hover:bg-slate-800">Lihat lagi</Button>
-        <Button onClick={handleConfirm} disabled={!value.trim()} className="h-14 flex-[2] rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg shadow-emerald-500/30 hover:from-emerald-400 hover:to-teal-400 disabled:opacity-40">Konfirmasi</Button>
+        <Button onClick={handleConfirm} disabled={!value.trim()} className="h-14 flex-[2] rounded-2xl bg-lime-400 text-slate-950 shadow-lg shadow-lime-400/20 hover:bg-lime-300 disabled:opacity-40">Konfirmasi</Button>
       </div>
     </>
   );
@@ -166,7 +166,7 @@ export const BackupPhrase = ({ wallet, onDone, onBack }) => {
           <Card className="relative overflow-hidden border-slate-800 bg-slate-900/70 p-5">
             {!revealed && (
               <button onClick={() => setRevealed(true)} className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-slate-900/95 backdrop-blur-sm">
-                <Eye className="h-8 w-8 text-emerald-400" />
+                <Eye className="h-8 w-8 text-lime-300" />
                 <span className="text-sm font-medium text-slate-200">Ketuk untuk mengungkap</span>
               </button>
             )}
@@ -182,13 +182,13 @@ export const BackupPhrase = ({ wallet, onDone, onBack }) => {
           {revealed && (
             <div className="mt-4 flex gap-2">
               <Button variant="outline" onClick={handleCopy} className="flex-1 border-slate-700 bg-slate-900/60 text-slate-200 hover:bg-slate-800">
-                {copied ? <><Check className="mr-2 h-4 w-4 text-emerald-400" /> Tersalin</> : <><Copy className="mr-2 h-4 w-4" /> Salin</>}
+                {copied ? <><Check className="mr-2 h-4 w-4 text-lime-300" /> Tersalin</> : <><Copy className="mr-2 h-4 w-4" /> Salin</>}
               </Button>
               <Button variant="outline" onClick={() => setRevealed(false)} className="border-slate-700 bg-slate-900/60 text-slate-200 hover:bg-slate-800"><EyeOff className="h-4 w-4" /></Button>
             </div>
           )}
           <div className="flex-1" />
-          <Button onClick={() => setStep('confirm')} disabled={!revealed} className="h-14 w-full rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg shadow-emerald-500/30 hover:from-emerald-400 hover:to-teal-400 disabled:opacity-40">
+          <Button onClick={() => setStep('confirm')} disabled={!revealed} className="h-14 w-full rounded-2xl bg-lime-400 text-slate-950 shadow-lg shadow-lime-400/20 hover:bg-lime-300 disabled:opacity-40">
             Saya sudah menyimpannya <ArrowRight className="ml-2 h-5 w-5" />
           </Button>
         </>
@@ -223,7 +223,7 @@ export const ImportWallet = ({ onBack, onImported }) => {
         </div>
       )}
       <div className="flex-1" />
-      <Button onClick={handle} disabled={loading || !phrase.trim()} className="h-14 w-full rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg shadow-emerald-500/30 hover:from-emerald-400 hover:to-teal-400 disabled:opacity-40">
+      <Button onClick={handle} disabled={loading || !phrase.trim()} className="h-14 w-full rounded-2xl bg-lime-400 text-slate-950 shadow-lg shadow-lime-400/20 hover:bg-lime-300 disabled:opacity-40">
         {loading ? <><RefreshCw className="mr-2 h-5 w-5 animate-spin" /> Memvalidasi...</> : <>Lanjutkan <ArrowRight className="ml-2 h-5 w-5" /></>}
       </Button>
     </motion.div>
@@ -290,7 +290,7 @@ export const SetupPassword = ({ onBack, onDone }) => {
 
         {error && <p className="text-xs text-red-400">{error}</p>}
 
-        <Button type="submit" disabled={!canSubmit} className="h-14 w-full rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 text-base font-semibold text-white shadow-lg shadow-emerald-500/30 hover:from-emerald-400 hover:to-teal-400 disabled:opacity-40">
+        <Button type="submit" disabled={!canSubmit} className="h-14 w-full rounded-2xl bg-lime-400 text-base font-semibold text-slate-950 shadow-lg shadow-lime-400/20 hover:bg-lime-300 disabled:opacity-40">
           {loading ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Mendaftarkan akun...</> : <>Daftar & Masuk <ArrowRight className="ml-2 h-5 w-5" /></>}
         </Button>
       </form>

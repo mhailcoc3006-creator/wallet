@@ -141,7 +141,7 @@ export const WalletListSheet = ({ onClose, prices }) => {
       <div className="mb-3 flex gap-2">
         <button
           onClick={() => { setSelectMode(!selectMode); clearSel(); }}
-          className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-medium transition ${selectMode ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300' : 'border-slate-700 bg-slate-900/60 text-slate-300 hover:bg-slate-900'}`}
+           className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-medium transition ${selectMode ? 'border-lime-300/40 bg-lime-400/10 text-lime-200' : 'border-slate-700 bg-slate-900/60 text-slate-300 hover:bg-slate-900'}`}
         >
           <CheckSquare className="h-3.5 w-3.5" /> {selectMode ? 'Batalkan Pilih' : 'Pilih Ganda'}
         </button>
@@ -156,10 +156,10 @@ export const WalletListSheet = ({ onClose, prices }) => {
 
       {/* Select mode action bar */}
       {selectMode && (
-        <div className="mb-3 flex items-center justify-between rounded-xl border border-emerald-500/30 bg-emerald-500/5 px-3 py-2">
-          <div className="text-xs text-emerald-200">{selectedIds.size} dipilih</div>
+         <div className="mb-3 flex items-center justify-between rounded-xl border border-lime-300/30 bg-lime-400/5 px-3 py-2">
+           <div className="text-xs text-lime-100">{selectedIds.size} dipilih</div>
           <div className="flex gap-2">
-            <button onClick={() => selectAllVisible(filtered)} className="text-[11px] text-emerald-300 hover:text-emerald-200">Pilih semua</button>
+             <button onClick={() => selectAllVisible(filtered)} className="text-[11px] text-lime-300 hover:text-lime-200">Pilih semua</button>
             {selectedIds.size > 0 && <button onClick={clearSel} className="text-[11px] text-slate-400 hover:text-white">Reset</button>}
             <button
               onClick={deleteSelected}
@@ -178,7 +178,7 @@ export const WalletListSheet = ({ onClose, prices }) => {
           <Search className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
           <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari nama/alamat..." className="h-11 rounded-xl border-slate-700 bg-slate-900/70 pl-9 text-xs text-white placeholder:text-slate-600" />
         </div>
-        <Button size="icon" onClick={refreshAll} disabled={refreshing || wallets.length === 0} className="h-11 w-11 flex-shrink-0 rounded-xl bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30">
+         <Button size="icon" onClick={refreshAll} disabled={refreshing || wallets.length === 0} className="h-11 w-11 flex-shrink-0 rounded-xl bg-lime-400/15 text-lime-300 hover:bg-lime-400/25">
           <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
         </Button>
       </div>
@@ -205,18 +205,18 @@ export const WalletListSheet = ({ onClose, prices }) => {
           const hasBal = (w.portfolioUsd || 0) > 0;
           return (
             <motion.div key={w.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i * 0.01, 0.3) }}>
-              <Card className={`border p-3 ${active ? 'border-emerald-500/40 bg-emerald-500/5' : selectedIds.has(w.id) ? 'border-emerald-500/60 bg-emerald-500/10' : 'border-slate-800 bg-slate-900/60'}`}>
+             <Card className={`border p-3 ${active ? 'border-lime-300/40 bg-lime-400/5' : selectedIds.has(w.id) ? 'border-lime-300/60 bg-lime-400/10' : 'border-slate-800 bg-slate-900/60'}`}>
                 <div className="flex items-center gap-3">
                   {selectMode && (
                     <button
                       onClick={(e) => { e.stopPropagation(); toggleSel(w.id); }}
-                      className={`flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md border-2 transition ${selectedIds.has(w.id) ? 'border-emerald-500 bg-emerald-500' : 'border-slate-600 bg-slate-800'}`}
+                       className={`flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md border-2 transition ${selectedIds.has(w.id) ? 'border-lime-300 bg-lime-400' : 'border-slate-600 bg-slate-800'}`}
                     >
                       {selectedIds.has(w.id) && <Check className="h-3.5 w-3.5 text-white" />}
                     </button>
                   )}
                   <button onClick={() => { if (selectMode) { toggleSel(w.id); return; } setActive(w.id); toast.success(`Beralih ke ${w.name}`); onClose(); }} className="flex flex-1 items-center gap-3 text-left">
-                    <div className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full ${active ? 'bg-emerald-500/20 text-emerald-300' : isPS ? 'bg-fuchsia-500/20 text-fuchsia-300' : 'bg-slate-800 text-slate-400'}`}>
+                     <div className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full ${active ? 'bg-lime-400/15 text-lime-300' : isPS ? 'bg-lime-400/10 text-lime-200' : 'bg-slate-800 text-slate-400'}`}>
                       {active ? <Check className="h-4 w-4" /> : isPS ? <Sparkles className="h-4 w-4" /> : <Wallet className="h-4 w-4" />}
                     </div>
                     <div className="min-w-0 flex-1">
