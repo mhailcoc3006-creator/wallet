@@ -1,386 +1,207 @@
 'use client';
 
-// PadaSankara — v3 background worker edition.
-// The heavy permutation/derivation loop runs in a Web Worker so the UI stays
-// responsive and the process continues even when the tab is hidden.
+// PadaSankara — private BIP-39 wallet generator.
+// All entropy, mnemonic generation, and key derivation happen in this browser.
+// No mnemonic, address, balance check, or activity request is sent to the API.
 
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { motion } from 'framer-motion';
+import { useMemo, useState } from 'react';
 import { ethers } from 'ethers';
 import {
-  Shuffle, Play, Pause, RotateCcw, Search, AlertTriangle,
-  Trash2, KeyRound, CheckCircle2, Sparkles, Cloud, Eye, EyeOff,
+  Check,
+  CheckCircle2,
+  Copy,
+  Eye,
+  EyeOff,
+  KeyRound,
+  LockKeyhole,
+  RefreshCw,
+  ShieldCheck,
+  Sparkles,
+  WalletCards,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useWalletStore } from '@/lib/store';
 import { shortAddr } from './shared';
 
-import PadaSankaraWorker from '@/workers/padasankara.worker.js?worker';
-
-const WORDLIST = ethers.wordlists.en;
-
-function isWordInList(w) {
-  try { return WORDLIST.getWordIndex(w.toLowerCase()) >= 0; } catch { return false; }
+function createPrivateWallet(wordCount) {
+  const entropyBytes = wordCount === 24 ? 32 : 16;
+  const mnemonic = ethers.Mnemonic.fromEntropy(ethers.randomBytes(entropyBytes)).phrase;
+  const wallet = ethers.Wallet.fromPhrase(mnemonic);
+  return {
+    mnemonic,
+    address: wallet.address,
+    name: 'BIP-39 Wallet',
+    source: 'padasankara',
+  };
 }
 
 export const PadaSankaraTab = () => {
-  const padasankara = useWalletStore((s) => s.padasankara);
-  const setPS = useWalletStore((s) => s.setPadaSankara);
-  const resetPS = useWalletStore((s) => s.resetPadaSankara);
-  const addWalletBatch = useWalletStore((s) => s.addWalletBatch);
+  const addWallet = useWalletStore((s) => s.addWallet);
+  const [wordCount, setWordCount] = useState(12);
+  const [generated, setGenerated] = useState(null);
+  const [revealed, setRevealed] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [generating, setGenerating] = useState(false);
 
-  const [isRunning, setIsRunning] = useState(false);
-  const [lastFound, setLastFound] = useState([]);
-  const [backgroundMode, setBackgroundMode] = useState(true);
-  const [foundBuffer, setFoundBuffer] = useState([]);
-  const workerRef = useRef(null);
+  const words = useMemo(() => (generated?.mnemonic || '').split(' '), [generated?.mnemonic]);
 
-  const { inputWords, wordCount, targetAddress, requireActivity, attempts, foundCount, status } = padasankara;
-  const activeWords = inputWords.slice(0, wordCount);
-  const filled = activeWords.filter((w) => (w || '').trim()).length;
-  const invalidCount = activeWords.filter((w) => (w || '').trim() && !isWordInList(w)).length;
-
-  const hasStarted = attempts > 0;
-  const canStart = filled === wordCount && invalidCount === 0 && !isRunning;
-
-  const setWord = (i, v) => {
-    if (isRunning) return;
-    const next = [...inputWords];
-    while (next.length < 24) next.push('');
-    next[i] = v.toLowerCase().replace(/[^a-z]/g, '');
-    setPS({ inputWords: next });
-  };
-
-  const setWordCount = (n) => { if (!isRunning) setPS({ wordCount: n }); };
-  const setTargetAddress = (v) => { if (!isRunning) setPS({ targetAddress: v }); };
-  const setRequireActivity = (v) => { if (!isRunning) setPS({ requireActivity: !!v }); };
-
-  const handlePaste = (e) => {
-    const text = (e.clipboardData || window.clipboardData).getData('text');
-    const parts = text.trim().toLowerCase().split(/\s+/).filter(Boolean);
-    if (parts.length >= 12) {
-      e.preventDefault();
-      const n = parts.length >= 24 ? 24 : 12;
-      const next = Array(24).fill('');
-      for (let i = 0; i < Math.min(n, parts.length); i++) next[i] = parts[i];
-      setPS({ inputWords: next, wordCount: n });
-      toast.success(`${n} kata di-paste.`);
+  const generate = async () => {
+    setGenerating(true);
+    setRevealed(false);
+    setCopied(false);
+    await new Promise((resolve) => setTimeout(resolve, 80));
+    try {
+      const candidate = createPrivateWallet(wordCount);
+      const wallet = addWallet(candidate);
+      if (!wallet) throw new Error('Wallet duplikat, silakan generate ulang.');
+      useWalletStore.getState().setActiveWallet(wallet.id);
+      setGenerated(wallet);
+      toast.success('Wallet BIP-39 baru ditambahkan ke vault Anda.');
+    } catch (error) {
+      toast.error(error?.message || 'Gagal membuat wallet baru.');
+    } finally {
+      setGenerating(false);
     }
   };
 
-  const handleReset = () => {
-    if (isRunning) return;
-    if (typeof window !== 'undefined' && !window.confirm('Reset akan menghapus input & progress PadaSankara (wallet yang sudah di-import tetap ada). Lanjutkan?')) return;
-    stopWorker();
-    resetPS();
-    setLastFound([]);
-    setFoundBuffer([]);
+  const copyPhrase = async () => {
+    if (!generated?.mnemonic || !revealed) return;
+    await navigator.clipboard.writeText(generated.mnemonic);
+    setCopied(true);
+    toast.success('Recovery phrase disalin. Simpan di tempat aman.');
+    setTimeout(() => setCopied(false), 2000);
   };
-
-
-  const startWorker = () => {
-    if (!workerRef.current) {
-      workerRef.current = new PadaSankaraWorker();
-      workerRef.current.onmessage = (e) => handleWorkerMessage(e.data);
-    }
-  };
-
-  const stopWorker = () => {
-    if (workerRef.current) {
-      workerRef.current.postMessage({ type: 'pause' });
-    }
-  };
-
-  const handleWorkerMessage = (data) => {
-    if (data.type === 'progress') {
-      setPS({ attempts: data.attempts, foundCount: data.found });
-    } else if (data.type === 'found') {
-      const wallets = data.wallets || [];
-      if (wallets.length) {
-        addWalletBatch(wallets);
-        setFoundBuffer((prev) => [...prev, ...wallets].slice(-100));
-        setLastFound((prev) => [...wallets.slice(-5), ...prev].slice(0, 5));
-      }
-    } else if (data.type === 'done' || data.type === 'paused') {
-      setIsRunning(false);
-      setPS({ status: 'paused', attempts: data.attempts, foundCount: data.found });
-    } else if (data.type === 'error') {
-      console.error('PadaSankara worker error:', data.error);
-      toast.error('Worker error: ' + data.error);
-      setIsRunning(false);
-      setPS({ status: 'paused' });
-    } else if (data.type === 'reset') {
-      setPS({ attempts: 0, foundCount: 0, status: 'idle' });
-    }
-  };
-
-  const start = () => {
-    if (!canStart) return;
-    startWorker();
-    setIsRunning(true);
-    setPS({ status: 'running' });
-    const apiUrl = new URL('/api/kavach/addresses/activity', window.location.href).href;
-    workerRef.current.postMessage({
-      type: 'start',
-      payload: {
-        inputWords,
-        wordCount,
-        targetAddress,
-        requireActivity,
-        apiUrl,
-        resumeAttempts: attempts,
-        resumeFound: foundCount,
-      },
-    });
-  };
-
-  const resume = () => { if (!isRunning) start(); };
-  const pause = () => { stopWorker(); };
-
-  // Keep the worker alive when the tab is hidden by background throttling
-  useEffect(() => {
-    if (!backgroundMode || !isRunning) return;
-    const handleVisibility = () => {
-      if (document.hidden) {
-        toast.info('PadaSankara tetap berjalan di latar belakang.', { duration: 2500 });
-      }
-    };
-    document.addEventListener('visibilitychange', handleVisibility);
-    return () => document.removeEventListener('visibilitychange', handleVisibility);
-  }, [backgroundMode, isRunning]);
-
-  // Warn before closing while running
-  useEffect(() => {
-    if (!isRunning) return;
-    const handler = (e) => {
-      e.preventDefault();
-      e.returnValue = '';
-      return '';
-    };
-    window.addEventListener('beforeunload', handler);
-    return () => window.removeEventListener('beforeunload', handler);
-  }, [isRunning]);
-
-  // Cleanup worker on unmount
-  useEffect(() => {
-    return () => {
-      if (workerRef.current) {
-        workerRef.current.postMessage({ type: 'pause' });
-        workerRef.current.terminate();
-        workerRef.current = null;
-      }
-    };
-  }, []);
-
-  const foundRatePct = attempts > 0 ? Math.min(100, (foundCount / attempts) * 100 * 16) : 0;
 
   return (
     <div className="space-y-4">
-      {/* Header */}
       <Card className="border-slate-800 bg-gradient-to-br from-slate-900 via-slate-900 to-fuchsia-950 p-5">
         <div className="flex items-start gap-3">
           <div className="rounded-xl bg-fuchsia-500/20 p-2">
-            <Shuffle className="h-5 w-5 text-fuchsia-400" />
+            <Sparkles className="h-5 w-5 text-fuchsia-400" />
           </div>
           <div className="flex-1">
             <div className="flex items-center gap-2">
-              <div className="text-sm font-bold text-white">PadaSankara</div>
-              <Badge className="h-4 bg-fuchsia-500/20 px-1.5 py-0 text-[9px] text-fuchsia-300 hover:bg-fuchsia-500/20">Recovery</Badge>
+              <div className="text-sm font-bold text-white">Buat Wallet BIP-39</div>
+              <Badge className="h-4 bg-fuchsia-500/20 px-1.5 py-0 text-[9px] text-fuchsia-300 hover:bg-fuchsia-500/20">Private</Badge>
             </div>
-            <div className="mt-1 text-xs text-slate-400">Auto-import semua permutasi BIP-39 yang valid. Berjalan di background worker agar UI tetap lancar.</div>
+            <div className="mt-1 text-xs leading-relaxed text-slate-400">
+              Generator wallet baru menggunakan seluruh wordlist BIP-39 dan entropy aman dari browser Anda.
+            </div>
           </div>
-        </div>
-        <div className="mt-4 flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-2.5 text-[11px] leading-relaxed text-amber-200">
-          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />
-          <span>Setiap phrase valid otomatis ditambahkan sebagai wallet baru. Ranking di tab Portfolio berdasarkan saldo tertinggi ke terendah.</span>
         </div>
       </Card>
 
-      {/* Word count + reset */}
-      <div className="flex items-center justify-between">
-        <div className="flex rounded-xl border border-slate-800 bg-slate-900/60 p-1">
-          {[12, 24].map((n) => (
+      <Card className="border-slate-800 bg-slate-900/60 p-4">
+        <div className="flex items-start gap-3">
+          <ShieldCheck className="mt-0.5 h-5 w-5 flex-shrink-0 text-emerald-400" />
+          <div className="text-xs leading-relaxed text-slate-300">
+            <div className="font-semibold text-white">Hanya untuk akun Anda</div>
+            <div className="mt-1 text-slate-500">
+              Phrase dibuat dan disimpan di vault terenkripsi pada device ini. Tidak ada pemindaian alamat publik, pengecekan saldo, atau pengiriman data ke server.
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      <div>
+        <div className="mb-2 text-xs uppercase tracking-widest text-slate-500">Panjang recovery phrase</div>
+        <div className="grid grid-cols-2 gap-2">
+          {[12, 24].map((count) => (
             <button
-              key={n}
-              onClick={() => setWordCount(n)}
-              disabled={isRunning}
-              className={`rounded-lg px-4 py-1.5 text-xs font-medium transition ${wordCount === n ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'} disabled:opacity-40`}
+              key={count}
+              type="button"
+              onClick={() => setWordCount(count)}
+              disabled={generating}
+              className={`rounded-xl border px-3 py-3 text-left transition ${
+                wordCount === count
+                  ? 'border-fuchsia-500/60 bg-fuchsia-500/10 text-white'
+                  : 'border-slate-800 bg-slate-900/60 text-slate-400 hover:border-slate-700'
+              } disabled:opacity-40`}
             >
-              {n} kata
+              <div className="text-sm font-semibold">{count} kata</div>
+              <div className="mt-1 text-[10px] opacity-70">{count === 12 ? '128-bit entropy' : '256-bit entropy'}</div>
             </button>
           ))}
         </div>
-        <button onClick={handleReset} disabled={isRunning} className="flex items-center gap-1 text-xs text-slate-500 hover:text-red-400 disabled:opacity-40">
-          <RotateCcw className="h-3 w-3" /> Reset
-        </button>
       </div>
 
-      {/* Word grid */}
-      <Card className="border-slate-800 bg-slate-900/60 p-3">
-        <div className="grid grid-cols-3 gap-1.5">
-          {Array.from({ length: wordCount }).map((_, i) => {
-            const val = inputWords[i] || '';
-            const isValid = !val || isWordInList(val);
-            return (
-              <div key={i} className={`flex items-center gap-1 rounded-lg border px-2 py-1.5 ${isValid ? 'border-slate-700/70 bg-slate-950/50' : 'border-red-500/40 bg-red-500/5'}`}>
-                <span className="w-5 text-[9px] font-mono text-slate-500">{String(i + 1).padStart(2, '0')}</span>
-                <input
-                  value={val}
-                  onChange={(e) => setWord(i, e.target.value)}
-                  onPaste={i === 0 ? handlePaste : undefined}
-                  disabled={isRunning}
-                  placeholder="—"
-                  className="w-full bg-transparent text-xs font-medium text-white outline-none placeholder:text-slate-700"
-                />
-              </div>
-            );
-          })}
-        </div>
-        <div className="mt-3 flex items-center justify-between text-[11px]">
-          <span className="text-slate-500">{filled}/{wordCount} kata diisi</span>
-          {invalidCount > 0 && <span className="text-red-400">{invalidCount} kata tidak ada di BIP-39</span>}
-        </div>
-      </Card>
+      <Button
+        onClick={generate}
+        disabled={generating}
+        className="h-14 w-full rounded-2xl bg-gradient-to-r from-fuchsia-500 to-purple-600 text-base font-semibold text-white shadow-lg shadow-fuchsia-500/30 hover:from-fuchsia-400 hover:to-purple-500 disabled:opacity-40"
+      >
+        {generating ? (
+          <><RefreshCw className="mr-2 h-5 w-5 animate-spin" /> Membuat wallet...</>
+        ) : (
+          <><WalletCards className="mr-2 h-5 w-5" /> Buat Wallet Acak BIP-39</>
+        )}
+      </Button>
 
-      {/* Target address */}
-      <div>
-        <div className="mb-2 flex items-center justify-between text-xs uppercase tracking-widest text-slate-500">
-          <span>Target Address (opsional)</span>
-          <span className="text-slate-600">EVM • 0x...</span>
-        </div>
-        <div className="relative">
-          <Search className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
-          <Input
-            value={targetAddress || ''}
-            onChange={(e) => setTargetAddress(e.target.value)}
-            disabled={isRunning}
-            placeholder="0x... (auto-stop saat match)"
-            className="h-11 rounded-xl border-slate-700 bg-slate-900/70 pl-9 font-mono text-xs text-white placeholder:text-slate-600"
-          />
-        </div>
-      </div>
-
-      {/* Activity filter toggle */}
-      <div className="flex items-start gap-3 rounded-xl border border-slate-800 bg-slate-900/60 p-3">
-        <input
-          id="ps-activity"
-          type="checkbox"
-          checked={requireActivity}
-          onChange={(e) => setRequireActivity(e.target.checked)}
-          disabled={isRunning}
-          className="mt-0.5 h-4 w-4 accent-fuchsia-500"
-        />
-        <label htmlFor="ps-activity" className="flex-1 cursor-pointer select-none">
-          <div className="text-xs font-medium text-slate-200">Hanya simpan wallet aktif</div>
-          <div className="mt-0.5 text-[10px] leading-relaxed text-slate-500">
-            Valid phrase hanya di-import kalau address-nya punya saldo &gt; 0 atau riwayat transaksi di salah satu chain. Lebih lambat karena perlu cek network.
-          </div>
-        </label>
-      </div>
-
-      {/* Background mode toggle */}
-      <div className="flex items-start gap-3 rounded-xl border border-slate-800 bg-slate-900/60 p-3">
-        <input
-          id="ps-bg"
-          type="checkbox"
-          checked={backgroundMode}
-          onChange={(e) => setBackgroundMode(e.target.checked)}
-          disabled={isRunning}
-          className="mt-0.5 h-4 w-4 accent-fuchsia-500"
-        />
-        <label htmlFor="ps-bg" className="flex-1 cursor-pointer select-none">
-          <div className="flex items-center gap-2 text-xs font-medium text-slate-200">
-            <Cloud className="h-3.5 w-3.5 text-fuchsia-400" /> Mode latar belakang
-          </div>
-          <div className="mt-0.5 text-[10px] leading-relaxed text-slate-500">
-            Proses tetap berjalan saat tab tidak aktif atau minimised. Browser tetap butuh tab terbuka; tutup tab akan menghentikan proses.
-          </div>
-        </label>
-      </div>
-
-      {/* Progress card (if started) */}
-      {hasStarted && (
-        <Card className="border-slate-800 bg-slate-900/60 p-4">
-          <div className="flex items-center justify-between">
+      {generated && (
+        <Card className="border-emerald-500/30 bg-emerald-500/5 p-4">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="h-5 w-5 text-emerald-400" />
             <div>
-              <div className="text-xs uppercase tracking-widest text-slate-500">{isRunning ? 'Sedang berjalan' : status === 'paused' ? 'Dijeda' : 'Siap'}</div>
-              <div className="mt-1 font-mono text-lg font-bold text-white">{attempts.toLocaleString()}</div>
-              <div className="text-[10px] text-slate-500">total percobaan</div>
-            </div>
-            <div className="text-right">
-              <div className="text-xs uppercase tracking-widest text-slate-500">Wallet ditemukan</div>
-              <div className="mt-1 font-mono text-lg font-bold text-fuchsia-300">{foundCount.toLocaleString()}</div>
-              <div className="text-[10px] text-slate-500">auto-imported</div>
+              <div className="text-sm font-semibold text-white">Wallet berhasil dibuat</div>
+              <div className="text-[10px] text-slate-500">Sudah disimpan ke vault terenkripsi Anda</div>
             </div>
           </div>
-          <div className="mt-3 h-1 overflow-hidden rounded-full bg-slate-800">
-            <div className={`h-full bg-gradient-to-r from-fuchsia-500 to-purple-500 ${isRunning ? 'animate-pulse' : ''}`} style={{ width: `${foundRatePct}%` }} />
+
+          <div className="mt-4 rounded-xl border border-slate-800 bg-slate-950/60 p-3">
+            <div className="flex items-center justify-between text-[10px] uppercase tracking-widest text-slate-500">
+              <span>Alamat EVM</span>
+              <span className="font-mono normal-case text-slate-400">{shortAddr(generated.address, 10, 8)}</span>
+            </div>
+            <div className="mt-3 flex items-center gap-2 text-xs text-amber-200">
+              <LockKeyhole className="h-3.5 w-3.5 text-amber-300" />
+              <span>Simpan recovery phrase sebelum memakai wallet ini.</span>
+            </div>
           </div>
-          <div className="mt-1 text-[10px] text-slate-500">Hit-rate checksum ± 1/16 (≈6.25%)</div>
+
+          <div className="relative mt-3">
+            {!revealed && (
+              <button
+                type="button"
+                onClick={() => setRevealed(true)}
+                className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-950/95 backdrop-blur-sm"
+              >
+                <Eye className="h-6 w-6 text-emerald-400" />
+                <span className="text-xs font-medium text-slate-200">Ketuk untuk mengungkap phrase</span>
+              </button>
+            )}
+            <div className="grid grid-cols-3 gap-1.5 rounded-xl border border-slate-800 bg-slate-950/60 p-3">
+              {words.map((word, index) => (
+                <div key={`${word}-${index}`} className="flex items-center gap-1.5 rounded-lg border border-slate-800 bg-slate-900/70 px-2 py-2">
+                  <span className="text-[9px] font-mono text-slate-600">{String(index + 1).padStart(2, '0')}</span>
+                  <span className="truncate text-[11px] font-medium text-white">{word}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {revealed && (
+            <div className="mt-3 flex gap-2">
+              <Button onClick={copyPhrase} variant="outline" className="flex-1 border-slate-700 bg-slate-900/60 text-slate-200 hover:bg-slate-800">
+                {copied ? <><Check className="mr-2 h-4 w-4 text-emerald-400" /> Tersalin</> : <><Copy className="mr-2 h-4 w-4" /> Salin Phrase</>}
+              </Button>
+              <Button onClick={() => setRevealed(false)} variant="outline" className="border-slate-700 bg-slate-900/60 text-slate-200 hover:bg-slate-800">
+                <EyeOff className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+
+          <div className="mt-3 text-[10px] leading-relaxed text-slate-500">
+            Recovery phrase memberi akses penuh ke wallet. Jangan kirim ke siapa pun dan jangan simpan di chat atau screenshot cloud.
+          </div>
         </Card>
       )}
 
-      {/* Controls */}
-      {!isRunning ? (
-        hasStarted ? (
-          <div className="grid grid-cols-2 gap-2">
-            <Button onClick={resume} className="h-14 rounded-2xl bg-gradient-to-r from-fuchsia-500 to-purple-600 text-base font-semibold text-white shadow-lg shadow-fuchsia-500/30 hover:from-fuchsia-400 hover:to-purple-500">
-              <Play className="mr-2 h-5 w-5" /> Lanjutkan
-            </Button>
-            <Button onClick={handleReset} variant="outline" className="h-14 rounded-2xl border-slate-700 bg-slate-900/60 text-slate-200 hover:bg-slate-800">
-              <RotateCcw className="mr-2 h-5 w-5" /> Reset
-            </Button>
-          </div>
-        ) : (
-          <Button
-            onClick={start}
-            disabled={!canStart}
-            className="h-14 w-full rounded-2xl bg-gradient-to-r from-fuchsia-500 to-purple-600 text-base font-semibold text-white shadow-lg shadow-fuchsia-500/30 hover:from-fuchsia-400 hover:to-purple-500 disabled:opacity-40"
-          >
-            <Play className="mr-2 h-5 w-5" /> Mulai PadaSankara
-          </Button>
-        )
-      ) : (
-        <Button onClick={pause} className="h-14 w-full rounded-2xl bg-amber-500/20 text-amber-100 hover:bg-amber-500/30">
-          <Pause className="mr-2 h-5 w-5" /> Pause
-        </Button>
-      )}
-
-      {/* Last found preview */}
-      {lastFound.length > 0 && (
-        <div>
-          <div className="mb-2 flex items-center justify-between text-xs uppercase tracking-widest text-slate-500">
-            <span>Baru saja di-import</span>
-            <span className="text-slate-600">Cek tab Portfolio</span>
-          </div>
-          <div className="space-y-2">
-            {lastFound.map((w, i) => (
-              <motion.div key={w.address + i} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }}>
-                <Card className="border-slate-800 bg-slate-900/60 p-3">
-                  <div className="flex items-center gap-3">
-                    <div className="rounded-full bg-fuchsia-500/20 p-1.5">
-                      <CheckCircle2 className="h-3.5 w-3.5 text-fuchsia-400" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="text-xs font-semibold text-white">{w.name}</div>
-                      <div className="font-mono text-[10px] text-slate-500">{shortAddr(w.address, 8, 8)}</div>
-                    </div>
-                    <Sparkles className="h-3.5 w-3.5 text-fuchsia-300" />
-                  </div>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      )}
-
       <div className="pt-2 text-center text-[10px] uppercase tracking-widest text-slate-600">
-        Fisher-Yates • dedup Set • checksum BIP-39 • background worker
+        BIP-39 • local entropy • encrypted vault • no public scanning
       </div>
     </div>
   );
