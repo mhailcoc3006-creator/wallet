@@ -21,3 +21,10 @@ uri = "file://attached_assets/generated_images/cavendish-elegant-logo.jpg"
 type = "image"
 title = "Cavendish Elegant Logo"
 description = "Alternatif logo Cavendish yang lebih elegan dengan monogram C dan aksen daun subtil dalam format JPG HD."
+
+[[outputs]]
+id = "IudgDm-HQrxKu5VSxx0gJ"
+uri = "file://attached_assets/generated_images/cavendish-modern-lime-logo.jpg"
+type = "image"
+title = "Cavendish Modern Lime Logo"
+description = "Logo Cavendish alternatif dengan latar hijau stabilo dan monogram hitam bergaya loop rantai modern yang orisinal."
