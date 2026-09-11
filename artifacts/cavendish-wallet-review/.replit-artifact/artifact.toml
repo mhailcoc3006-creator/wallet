@@ -1,0 +1,28 @@
+kind = "video"
+previewPath = "/cavendish-wallet-review/"
+title = "Cavendish Wallet Review"
+description = "A vertical motion-graphics review of Cavendish Wallet, showing its non-custodial wallet flow, encrypted vault, local signing, portfolio tools, and fixed-supply token creator."
+version = "1.0.0"
+id = "artifacts/cavendish-wallet-review"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/cavendish-wallet-review/" ]
+localPort = 20929
+
+[services.development]
+run = "pnpm --filter @workspace/cavendish-wallet-review run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/cavendish-wallet-review", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/cavendish-wallet-review/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "20929"
+BASE_PATH = "/cavendish-wallet-review/"
