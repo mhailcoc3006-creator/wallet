@@ -53,7 +53,7 @@ export const SwapTab = ({ mnemonic, addresses, balances, prices }) => {
       });
       setQuote(q);
     } catch (e) {
-      setError(e.message || 'Quote gagal. Coba jumlah yang lebih besar atau pair berbeda.');
+      setError(e.message || 'Quote failed. Try a larger amount or a different pair.');
     } finally { setQuoting(false); }
   };
 
@@ -72,9 +72,9 @@ export const SwapTab = ({ mnemonic, addresses, balances, prices }) => {
     try {
       const r = await executeSwap({ chain, mnemonic, quote });
       setResult(r);
-      toast.success('Swap dikirim!');
+      toast.success('Swap sent!');
     } catch (e) {
-      setError(e?.info?.error?.message || e.shortMessage || e.message || 'Swap gagal.');
+      setError(e?.info?.error?.message || e.shortMessage || e.message || 'Swap failed.');
     } finally { setExecuting(false); }
   };
 
@@ -91,7 +91,7 @@ export const SwapTab = ({ mnemonic, addresses, balances, prices }) => {
             <div className="rounded-xl bg-lime-400/15 p-2"><ArrowDownUp className="h-5 w-5 text-lime-300" /></div>
             <div>
               <div className="text-sm font-semibold text-white">Swap</div>
-              <div className="text-xs text-slate-400">Best rate via LI.FI • signing lokal</div>
+              <div className="text-xs text-slate-400">Best rate via LI.FI • local signing</div>
             </div>
           </div>
           <button onClick={() => setShowChain(true)} className="flex items-center gap-2 rounded-full border border-slate-700 bg-slate-900/60 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-800">
@@ -103,7 +103,7 @@ export const SwapTab = ({ mnemonic, addresses, balances, prices }) => {
       </Card>
 
       {/* From */}
-      <TokenPanel label="Dari" token={fromToken} amount={amount} onAmount={setAmount} balance={isNative ? nativeBalance : null} onPick={() => setShowTokenPicker('from')} />
+      <TokenPanel label="From" token={fromToken} amount={amount} onAmount={setAmount} balance={isNative ? nativeBalance : null} onPick={() => setShowTokenPicker('from')} />
 
       <div className="flex justify-center">
         <button onClick={swapSides} className="rounded-xl border border-lime-400/15 bg-[#050806] p-2 text-slate-400 hover:text-lime-300">
@@ -112,14 +112,14 @@ export const SwapTab = ({ mnemonic, addresses, balances, prices }) => {
       </div>
 
       {/* To */}
-      <TokenPanel label="Ke" token={toToken} readonly amount={toAmount != null ? fmtNum(toAmount, 6) : ''} usd={usdOut ? fmtUsd(usdOut) : ''} onPick={() => setShowTokenPicker('to')} loading={quoting} />
+      <TokenPanel label="To" token={toToken} readonly amount={toAmount != null ? fmtNum(toAmount, 6) : ''} usd={usdOut ? fmtUsd(usdOut) : ''} onPick={() => setShowTokenPicker('to')} loading={quoting} />
 
       {quote && (
         <Card className="border-slate-800 bg-slate-900/60 p-4 text-xs text-slate-300 space-y-1.5">
           <div className="flex justify-between"><span className="text-slate-500">Route</span><span>{toolName || 'aggregated'}</span></div>
           <div className="flex justify-between"><span className="text-slate-500">Slippage</span><span>{quote.action?.slippage != null ? (quote.action.slippage * 100).toFixed(2) : '0.5'}%</span></div>
           {gasUsd != null && <div className="flex justify-between"><span className="text-slate-500">Est. gas</span><span>{fmtUsd(gasUsd)}</span></div>}
-          <div className="flex justify-between"><span className="text-slate-500">Min. diterima</span><span>{quote.estimate?.toAmountMin ? fmtNum(Number(quote.estimate.toAmountMin) / 10 ** toToken.decimals) : '-'} {toToken.symbol}</span></div>
+          <div className="flex justify-between"><span className="text-slate-500">Minimum received</span><span>{quote.estimate?.toAmountMin ? fmtNum(Number(quote.estimate.toAmountMin) / 10 ** toToken.decimals) : '-'} {toToken.symbol}</span></div>
         </Card>
       )}
 
@@ -132,7 +132,7 @@ export const SwapTab = ({ mnemonic, addresses, balances, prices }) => {
         disabled={!quote || executing || quoting}
         className="h-14 w-full rounded-2xl bg-lime-400 text-base font-semibold text-slate-950 shadow-lg shadow-lime-400/20 hover:bg-lime-300 disabled:opacity-40"
       >
-        {executing ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Mengirim...</> : quoting ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Cek harga...</> : <><Zap className="mr-2 h-5 w-5" /> Swap Sekarang</>}
+        {executing ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Sending...</> : quoting ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Getting quote...</> : <><Zap className="mr-2 h-5 w-5" /> Swap Now</>}
       </Button>
 
       <div className="pt-2 text-center text-[10px] uppercase tracking-widest text-slate-600">Powered by LI.FI aggregator</div>
@@ -140,7 +140,7 @@ export const SwapTab = ({ mnemonic, addresses, balances, prices }) => {
       {showChain && (
         <Sheet onClose={() => setShowChain(false)}>
           <div className="mb-3 flex items-center justify-between">
-            <div className="text-lg font-bold text-white">Pilih Chain</div>
+            <div className="text-lg font-bold text-white">Select Chain</div>
             <button onClick={() => setShowChain(false)} className="rounded-full p-1 text-slate-400 hover:text-white"><X className="h-5 w-5" /></button>
           </div>
           <div className="grid grid-cols-2 gap-2">
@@ -157,7 +157,7 @@ export const SwapTab = ({ mnemonic, addresses, balances, prices }) => {
       {showTokenPicker && (
         <Sheet onClose={() => setShowTokenPicker(null)}>
           <div className="mb-3 flex items-center justify-between">
-            <div className="text-lg font-bold text-white">Pilih Token</div>
+            <div className="text-lg font-bold text-white">Select Token</div>
             <button onClick={() => setShowTokenPicker(null)} className="rounded-full p-1 text-slate-400 hover:text-white"><X className="h-5 w-5" /></button>
           </div>
           <div className="space-y-2">
@@ -185,12 +185,12 @@ export const SwapTab = ({ mnemonic, addresses, balances, prices }) => {
         <Sheet onClose={() => { setResult(null); setAmount(''); setQuote(null); }}>
           <div className="py-4 text-center">
             <CheckCircle2 className="mx-auto h-14 w-14 text-lime-300" />
-            <div className="mt-4 text-lg font-bold text-white">Swap terkirim</div>
+            <div className="mt-4 text-lg font-bold text-white">Swap sent</div>
             <div className="mt-2 text-sm text-slate-400">{fmtNum(amount)} {fromToken.symbol} → {toAmount ? fmtNum(toAmount) : ''} {toToken.symbol}</div>
             <a href={result.explorer} target="_blank" rel="noreferrer" className="mt-5 inline-flex items-center gap-2 rounded-xl bg-slate-800 px-4 py-2.5 text-sm text-white hover:bg-slate-700">
-              Lihat di Explorer <ExternalLink className="h-4 w-4" />
+              View in Explorer <ExternalLink className="h-4 w-4" />
             </a>
-            <Button onClick={() => { setResult(null); setAmount(''); setQuote(null); }} className="mt-4 h-12 w-full rounded-xl bg-lime-400 text-slate-950 hover:bg-lime-300">Selesai</Button>
+            <Button onClick={() => { setResult(null); setAmount(''); setQuote(null); }} className="mt-4 h-12 w-full rounded-xl bg-lime-400 text-slate-950 hover:bg-lime-300">Done</Button>
           </div>
         </Sheet>
       )}
@@ -202,7 +202,7 @@ const TokenPanel = ({ label, token, amount, onAmount, readonly, usd, onPick, bal
   <Card className="border-slate-800 bg-slate-900/60 p-4">
     <div className="mb-2 flex items-center justify-between text-xs text-slate-500">
       <span>{label}</span>
-      {balance != null && <span>Saldo: {fmtNum(parseFloat(balance || 0))} {token?.symbol}</span>}
+      {balance != null && <span>Balance: {fmtNum(parseFloat(balance || 0))} {token?.symbol}</span>}
     </div>
     <div className="flex items-center gap-3">
       <button onClick={onPick} className="flex items-center gap-2 rounded-xl bg-slate-800 px-3 py-2 hover:bg-slate-700">

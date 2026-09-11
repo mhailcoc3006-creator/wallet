@@ -39,9 +39,9 @@ export const SendSheet = ({ addresses, balances, prices, mnemonic, defaultChainI
       const r = await sendNative(chain, mnemonic, toAddress.trim(), String(amountNum));
       setResult(r);
       setStep('success');
-      toast.success('Transaksi terkirim!');
+       toast.success('Transaction sent!');
     } catch (e) {
-      setErrMsg(e?.info?.error?.message || e.shortMessage || e.message || 'Transaksi gagal.');
+       setErrMsg(e?.info?.error?.message || e.shortMessage || e.message || 'Transaction failed.');
       setStep('error');
     }
   };
@@ -68,30 +68,30 @@ export const SendSheet = ({ addresses, balances, prices, mnemonic, defaultChainI
           {step === 'sending' && (
             <>
               <Loader2 className="mx-auto h-12 w-12 animate-spin text-emerald-400" />
-              <div className="mt-4 text-lg font-bold text-white">Mengirim transaksi...</div>
-              <div className="mt-2 text-sm text-slate-400">Menandatangani dan broadcast ke {chain.name}</div>
+               <div className="mt-4 text-lg font-bold text-white">Sending transaction...</div>
+               <div className="mt-2 text-sm text-slate-400">Signing and broadcasting to {chain.name}</div>
             </>
           )}
           {step === 'success' && (
             <>
               <CheckCircle2 className="mx-auto h-14 w-14 text-emerald-400" />
-              <div className="mt-4 text-lg font-bold text-white">Transaksi berhasil dikirim</div>
+               <div className="mt-4 text-lg font-bold text-white">Transaction sent successfully</div>
               <div className="mt-2 text-sm text-slate-400">{fmtNum(amountNum)} {chain.symbol} → {toAddress.slice(0, 10)}...{toAddress.slice(-6)}</div>
               <a href={result?.explorer} target="_blank" rel="noreferrer" className="mt-6 inline-flex items-center gap-2 rounded-xl bg-slate-800 px-4 py-2.5 text-sm text-white hover:bg-slate-700">
-                Lihat di Explorer <ExternalLink className="h-4 w-4" />
+                 View in Explorer <ExternalLink className="h-4 w-4" />
               </a>
               <div className="mt-6">
-                <Button onClick={onClose} className="h-12 w-full rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white hover:from-emerald-400 hover:to-teal-400">Selesai</Button>
+                 <Button onClick={onClose} className="h-12 w-full rounded-xl bg-lime-400 text-slate-950 hover:bg-lime-300">Done</Button>
               </div>
             </>
           )}
           {step === 'error' && (
             <>
               <AlertTriangle className="mx-auto h-14 w-14 text-red-400" />
-              <div className="mt-4 text-lg font-bold text-white">Transaksi gagal</div>
+               <div className="mt-4 text-lg font-bold text-white">Transaction failed</div>
               <div className="mt-2 break-words text-xs text-red-200">{errMsg}</div>
               <div className="mt-6">
-                <Button onClick={() => setStep('form')} className="h-12 w-full rounded-xl bg-slate-800 text-white hover:bg-slate-700">Coba lagi</Button>
+                 <Button onClick={() => setStep('form')} className="h-12 w-full rounded-xl bg-slate-800 text-white hover:bg-slate-700">Try again</Button>
               </div>
             </>
           )}
@@ -104,24 +104,24 @@ export const SendSheet = ({ addresses, balances, prices, mnemonic, defaultChainI
     <Sheet onClose={onClose}>
       <div className="mb-4 flex items-center justify-between">
         <div>
-          <div className="text-lg font-bold text-white">Kirim Aset</div>
-          <div className="text-xs text-slate-400">Signing dilakukan lokal di device Anda</div>
+           <div className="text-lg font-bold text-white">Send Assets</div>
+           <div className="text-xs text-slate-400">Signing happens locally on this device</div>
         </div>
         <button onClick={onClose} className="rounded-full p-1 text-slate-400 hover:text-white"><X className="h-5 w-5" /></button>
       </div>
 
-      <div className="mb-2 text-xs uppercase tracking-widest text-slate-500">Pilih Chain</div>
+       <div className="mb-2 text-xs uppercase tracking-widest text-slate-500">Select Chain</div>
       <ChainSelector value={chainId} onChange={setChainId} />
 
       {!canSend ? (
         <div className="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-xs text-amber-200">
-          Pengiriman {chain.name} belum tersedia di versi ini. Anda tetap bisa menerima ke alamat {chain.name} Anda.
+           Sending {chain.name} is not available in this version. You can still receive funds at your {chain.name} address.
         </div>
       ) : (
         <>
           <div className="mt-5">
             <div className="mb-2 flex items-center justify-between text-xs uppercase tracking-widest text-slate-500">
-              <span>Alamat Tujuan</span>
+               <span>Recipient Address</span>
               <button onClick={() => setStep('scan')} className="flex items-center gap-1 text-emerald-400 hover:text-emerald-300">
                 <ScanLine className="h-3.5 w-3.5" /> Scan QR
               </button>
@@ -137,7 +137,7 @@ export const SendSheet = ({ addresses, balances, prices, mnemonic, defaultChainI
           <div className="mt-4">
             <div className="mb-2 flex items-center justify-between text-xs uppercase tracking-widest text-slate-500">
               <span>Jumlah</span>
-              <span>Saldo: {fmtNum(balance)} {chain.symbol}</span>
+               <span>Balance: {fmtNum(balance)} {chain.symbol}</span>
             </div>
             <div className="relative">
               <Input
@@ -156,14 +156,14 @@ export const SendSheet = ({ addresses, balances, prices, mnemonic, defaultChainI
               <div className="mt-1 text-right text-xs text-slate-500">≈ {fmtUsd(usdValue)}</div>
             )}
             {amountNum > balance && (
-              <div className="mt-2 text-xs text-red-400">Saldo tidak cukup.</div>
+               <div className="mt-2 text-xs text-red-400">Insufficient balance.</div>
             )}
           </div>
 
           <div className="mt-4 rounded-xl border border-slate-800 bg-slate-900/50 p-3">
             <div className="flex items-start gap-2 text-xs text-slate-300">
               <ChainIcon chain={chain} size={20} />
-              <span>Transaksi akan ditandatangani dengan private key di device Anda dan dibroadcast langsung ke jaringan {chain.name}. Cavendish tidak menerima kunci Anda.</span>
+               <span>This transaction will be signed with your private key on this device and broadcast directly to the {chain.name} network. Cavendish never receives your key.</span>
             </div>
           </div>
 
@@ -172,7 +172,7 @@ export const SendSheet = ({ addresses, balances, prices, mnemonic, defaultChainI
             disabled={invalidAmount || !toAddress.trim()}
             className="mt-5 h-14 w-full rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 text-base font-semibold text-white shadow-lg shadow-emerald-500/30 hover:from-emerald-400 hover:to-teal-400 disabled:opacity-40"
           >
-            Tinjau & Kirim
+             Review & Send
           </Button>
         </>
       )}

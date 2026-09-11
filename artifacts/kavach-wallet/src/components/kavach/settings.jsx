@@ -33,7 +33,7 @@ export const SettingsSheet = ({ onClose, onWalletChanged, onFullReset, onLock })
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Settings2 className="h-5 w-5 text-lime-300" />
-          <div className="text-lg font-bold text-white">Pengaturan</div>
+          <div className="text-lg font-bold text-white">Settings</div>
         </div>
         <button onClick={onClose} className="rounded-full p-1 text-slate-400 hover:text-white"><X className="h-5 w-5" /></button>
       </div>
@@ -41,12 +41,12 @@ export const SettingsSheet = ({ onClose, onWalletChanged, onFullReset, onLock })
       <div className="mb-4 rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
         <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-slate-500">
           <User className="h-3 w-3" />
-          Akun
+          Account
         </div>
         <div className="mt-1 text-sm font-semibold text-white">{store.userName || 'User'}</div>
         <div className="mt-0.5 flex items-center gap-2 text-xs text-slate-400">
           <WalletIcon className="h-3 w-3" />
-          <span>{store.wallets.length} wallet aktif</span>
+          <span>{store.wallets.length} active wallet{store.wallets.length === 1 ? '' : 's'}</span>
         </div>
         {active && (
           <div className="mt-2 font-mono text-[10px] text-slate-500">{shortAddr(active.address, 10, 8)}</div>
@@ -54,11 +54,11 @@ export const SettingsSheet = ({ onClose, onWalletChanged, onFullReset, onLock })
       </div>
 
       <div className="space-y-2">
-        <MenuItem icon={KeyRound} title="Lihat Recovery Phrase" desc="Backup wallet aktif Anda" onClick={() => setScreen('phrase')} disabled={!active} />
-        <MenuItem icon={Download} title="Import Wallet Lain" desc="Tambah wallet baru (tidak menggantikan yang ada)" onClick={() => setScreen('import')} />
-        <MenuItem icon={Coins} title="Buat Token ERC-20" desc="Deploy token murah di Base Mainnet atau gratis di Sepolia" onClick={() => setScreen('token')} disabled={!active} />
-        <MenuItem icon={Lock} title="Kunci Vault" desc="Logout — butuh password untuk unlock lagi" onClick={() => { useWalletStore.getState().lock(); onClose(); onLock?.(); }} />
-        <MenuItem icon={Trash2} title="Hapus Semua Data" desc="Hapus vault + semua wallet dari device" danger onClick={() => setScreen('delete-all')} />
+        <MenuItem icon={KeyRound} title="View Recovery Phrase" desc="Back up your active wallet" onClick={() => setScreen('phrase')} disabled={!active} />
+        <MenuItem icon={Download} title="Import Another Wallet" desc="Add a new wallet without replacing existing ones" onClick={() => setScreen('import')} />
+        <MenuItem icon={Coins} title="Create ERC-20 Token" desc="Deploy affordably on Base Mainnet or for free on Sepolia" onClick={() => setScreen('token')} disabled={!active} />
+        <MenuItem icon={Lock} title="Lock Vault" desc="Sign out — your password will be required to unlock again" onClick={() => { useWalletStore.getState().lock(); onClose(); onLock?.(); }} />
+        <MenuItem icon={Trash2} title="Delete All Data" desc="Delete the vault and all wallets from this device" danger onClick={() => setScreen('delete-all')} />
       </div>
     </Sheet>
   );
@@ -84,7 +84,7 @@ const InlineHeader = ({ title, subtitle, onBack, onClose }) => (
   <div className="mb-4">
     <div className="mb-3 flex items-center justify-between">
       <button onClick={onBack} className="flex items-center gap-1 text-xs text-slate-400 hover:text-white">
-        <ArrowLeft className="h-3.5 w-3.5" /> Kembali
+        <ArrowLeft className="h-3.5 w-3.5" /> Back
       </button>
       <button onClick={onClose} className="rounded-full p-1 text-slate-400 hover:text-white"><X className="h-5 w-5" /></button>
     </div>
@@ -96,15 +96,15 @@ const InlineHeader = ({ title, subtitle, onBack, onClose }) => (
 const RevealPhraseInline = ({ mnemonic, onBack, onClose }) => {
   const [revealed, setRevealed] = useState(false);
   const words = (mnemonic || '').split(' ');
-  const copy = async () => { await navigator.clipboard.writeText(mnemonic); toast.success('Recovery phrase disalin.'); };
+  const copy = async () => { await navigator.clipboard.writeText(mnemonic); toast.success('Recovery phrase copied.'); };
   return (
     <Sheet onClose={onClose}>
-      <InlineHeader title="Recovery Phrase" subtitle="Jangan bagikan kepada siapapun." onBack={onBack} onClose={onClose} />
+      <InlineHeader title="Recovery Phrase" subtitle="Never share this with anyone." onBack={onBack} onClose={onClose} />
       <div className="relative">
         {!revealed && (
           <button onClick={() => setRevealed(true)} className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 rounded-2xl bg-slate-900/95 backdrop-blur-sm">
             <Eye className="h-6 w-6 text-lime-300" />
-            <span className="text-sm text-slate-200">Ketuk untuk mengungkap</span>
+            <span className="text-sm text-slate-200">Tap to reveal</span>
           </button>
         )}
         <div className="grid grid-cols-3 gap-2 rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
@@ -117,7 +117,7 @@ const RevealPhraseInline = ({ mnemonic, onBack, onClose }) => {
         </div>
       </div>
       <div className="mt-4 flex gap-2">
-        <Button variant="outline" onClick={copy} disabled={!revealed} className="flex-1 border-slate-700 bg-slate-900/60 text-slate-200 hover:bg-slate-800"><Copy className="mr-2 h-4 w-4" /> Salin</Button>
+        <Button variant="outline" onClick={copy} disabled={!revealed} className="flex-1 border-slate-700 bg-slate-900/60 text-slate-200 hover:bg-slate-800"><Copy className="mr-2 h-4 w-4" /> Copy</Button>
         <Button variant="outline" onClick={() => setRevealed(false)} className="border-slate-700 bg-slate-900/60 text-slate-200 hover:bg-slate-800"><EyeOff className="h-4 w-4" /></Button>
       </div>
     </Sheet>
@@ -136,23 +136,23 @@ const ImportInline = ({ onBack, onDone }) => {
       await new Promise((r) => setTimeout(r, 200));
       const w = importFromMnemonic(phrase);
       const added = useWalletStore.getState().addWallet({ mnemonic: w.mnemonic, address: w.address, name: name.trim() || undefined, source: 'imported' });
-      if (!added) { setError('Wallet ini sudah ada.'); setLoading(false); return; }
+      if (!added) { setError('This wallet already exists.'); setLoading(false); return; }
       useWalletStore.getState().setActiveWallet(added.id);
-      toast.success('Wallet ditambahkan & aktif.');
+      toast.success('Wallet added and activated.');
       onDone();
-    } catch (e) { setError(e.message || 'Recovery phrase tidak valid.'); }
+    } catch (e) { setError(e.message || 'Invalid recovery phrase.'); }
     setLoading(false);
   };
 
   return (
     <Sheet onClose={onBack}>
-      <InlineHeader title="Import Wallet Lain" subtitle="Tambahkan wallet baru. Wallet yang sudah ada TIDAK diganti." onBack={onBack} onClose={onBack} />
+      <InlineHeader title="Import Another Wallet" subtitle="Add a new wallet. Existing wallets will NOT be replaced." onBack={onBack} onClose={onBack} />
       <div className="mb-3">
-        <div className="mb-1 text-[10px] uppercase tracking-widest text-slate-500">Nama (opsional)</div>
-        <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="cth: Trading Wallet" className="h-11 rounded-xl border-slate-700 bg-slate-900/70 text-sm text-white" />
+        <div className="mb-1 text-[10px] uppercase tracking-widest text-slate-500">Name (optional)</div>
+        <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="for example: Trading Wallet" className="h-11 rounded-xl border-slate-700 bg-slate-900/70 text-sm text-white" />
       </div>
       <div className="mb-1 text-[10px] uppercase tracking-widest text-slate-500">Recovery phrase</div>
-      <Textarea value={phrase} onChange={(e) => { setPhrase(e.target.value); setError(''); }} placeholder="Ketik 12/24 kata..." className="min-h-[120px] resize-none rounded-2xl border-slate-700 bg-slate-900/70 text-sm text-white placeholder:text-slate-500 focus-visible:ring-emerald-500" />
+      <Textarea value={phrase} onChange={(e) => { setPhrase(e.target.value); setError(''); }} placeholder="Type 12 or 24 words..." className="min-h-[120px] resize-none rounded-2xl border-slate-700 bg-slate-900/70 text-sm text-white placeholder:text-slate-500 focus-visible:ring-lime-400" />
       {error && (
         <div className="mt-3 flex items-start gap-2 rounded-xl border border-red-500/30 bg-red-500/10 p-3">
           <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-red-400" />
@@ -160,7 +160,7 @@ const ImportInline = ({ onBack, onDone }) => {
         </div>
       )}
       <Button onClick={handle} disabled={loading || !phrase.trim()} className="mt-5 h-13 w-full rounded-2xl bg-lime-400 py-3 text-base font-semibold text-slate-950 hover:bg-lime-300 disabled:opacity-40">
-        {loading ? <><RefreshCw className="mr-2 h-4 w-4 animate-spin" /> Menambah...</> : <>Tambah Wallet</>}
+        {loading ? <><RefreshCw className="mr-2 h-4 w-4 animate-spin" /> Adding...</> : <>Add Wallet</>}
       </Button>
     </Sheet>
   );
@@ -168,24 +168,24 @@ const ImportInline = ({ onBack, onDone }) => {
 
 const DeleteAllInline = ({ onBack, onConfirm }) => {
   const [confirmText, setConfirmText] = useState('');
-  const canDelete = confirmText.trim().toUpperCase() === 'HAPUS SEMUA';
+  const canDelete = confirmText.trim().toUpperCase() === 'DELETE ALL';
   return (
     <Sheet onClose={onBack}>
-      <InlineHeader title="Hapus Semua Data" subtitle="Vault dan seluruh wallet akan dihapus dari device." onBack={onBack} onClose={onBack} />
+      <InlineHeader title="Delete All Data" subtitle="The vault and all wallets will be deleted from this device." onBack={onBack} onClose={onBack} />
       <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-xs leading-relaxed text-red-200">
-        Semua data terenkripsi (vault, wallet, watchlist, PadaSankara) akan dihapus dari device ini. Untuk memulihkan wallet, Anda butuh recovery phrase.
+        All encrypted data (vault, wallets, watchlist, and PadaSankara) will be deleted from this device. You will need your recovery phrase to restore a wallet.
         <br /><br />
-        &#9888;&#65039; Pastikan Anda punya recovery phrase untuk semua wallet yang bernilai.
+        &#9888;&#65039; Make sure you have the recovery phrase for every wallet with funds.
       </div>
-      <div className="mt-4 text-xs uppercase tracking-widest text-slate-500">Ketik <span className="font-bold text-red-400">HAPUS SEMUA</span> untuk konfirmasi</div>
+      <div className="mt-4 text-xs uppercase tracking-widest text-slate-500">Type <span className="font-bold text-red-400">DELETE ALL</span> to confirm</div>
       <input
         value={confirmText}
         onChange={(e) => setConfirmText(e.target.value)}
-        placeholder="HAPUS SEMUA"
+        placeholder="DELETE ALL"
         className="mt-2 h-12 w-full rounded-xl border border-slate-700 bg-slate-900/70 px-4 font-mono text-sm uppercase text-white placeholder:text-slate-600 focus:border-red-500 focus:outline-none"
       />
       <Button onClick={onConfirm} disabled={!canDelete} className="mt-5 h-13 w-full rounded-2xl bg-red-500 py-3 text-base font-semibold text-white hover:bg-red-600 disabled:opacity-40">
-        <Trash2 className="mr-2 h-4 w-4" /> Hapus Semua Sekarang
+        <Trash2 className="mr-2 h-4 w-4" /> Delete Everything Now
       </Button>
     </Sheet>
   );

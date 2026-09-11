@@ -110,7 +110,7 @@ const KavachApp = () => {
     try {
       setAddresses(deriveAllAddresses(activeWallet.mnemonic));
     } catch (e) {
-      toast.error('Gagal derive alamat: ' + e.message);
+      toast.error('Could not derive address: ' + e.message);
     }
   }, [activeWallet?.mnemonic]);
 
@@ -129,7 +129,7 @@ const KavachApp = () => {
       setBalances(bal);
       setPrices(priceRes.prices || {});
     } catch (e) {
-      if (!silent) toast.error('Gagal memuat data.');
+      if (!silent) toast.error('Could not load data.');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -413,16 +413,16 @@ const BottomNav = ({ tab, setTab }) => {
 const RevealPhraseModal = ({ mnemonic, onClose }) => {
   const [revealed, setRevealed] = useState(false);
   const words = (mnemonic || '').split(' ');
-  const copy = async () => { await navigator.clipboard.writeText(mnemonic); toast.success('Recovery phrase disalin.'); };
+  const copy = async () => { await navigator.clipboard.writeText(mnemonic); toast.success('Recovery phrase copied.'); };
   return (
     <Sheet onClose={onClose}>
       <div className="mb-1 text-lg font-bold text-white">Recovery Phrase</div>
-      <p className="mb-4 text-xs text-slate-400">Jangan bagikan. Siapa pun yang tahu kata-kata ini menguasai wallet Anda.</p>
+      <p className="mb-4 text-xs text-slate-400">Never share this. Anyone who knows these words controls your wallet.</p>
       <div className="relative">
         {!revealed && (
           <button onClick={() => setRevealed(true)} className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 rounded-2xl bg-slate-900/95 backdrop-blur-sm">
             <Eye className="h-6 w-6 text-emerald-400" />
-            <span className="text-sm text-slate-200">Ketuk untuk mengungkap</span>
+            <span className="text-sm text-slate-200">Tap to reveal</span>
           </button>
         )}
         <div className="grid grid-cols-3 gap-2 rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
@@ -435,8 +435,8 @@ const RevealPhraseModal = ({ mnemonic, onClose }) => {
         </div>
       </div>
       <div className="mt-4 flex gap-2">
-        <Button variant="outline" onClick={copy} disabled={!revealed} className="flex-1 border-slate-700 bg-slate-900/60 text-slate-200 hover:bg-slate-800">Salin</Button>
-        <Button onClick={onClose} className="flex-1 bg-gradient-to-r from-emerald-500 to-teal-500 text-white hover:from-emerald-400 hover:to-teal-400">Selesai</Button>
+        <Button variant="outline" onClick={copy} disabled={!revealed} className="flex-1 border-slate-700 bg-slate-900/60 text-slate-200 hover:bg-slate-800">Copy</Button>
+        <Button onClick={onClose} className="flex-1 bg-lime-400 text-slate-950 hover:bg-lime-300">Done</Button>
       </div>
     </Sheet>
   );
@@ -447,32 +447,32 @@ const SignalAlertsSheet = ({ onClose, onOpenSignal }) => {
   const clearSignalAlerts = useWalletStore((s) => s.clearSignalAlerts);
   const toggleEnabled = useWalletStore((s) => s.toggleSignalAlertsEnabled);
   const enabled = useWalletStore((s) => s.signalAlertsEnabled);
-  const fmtTime = (ts) => new Date(ts).toLocaleString('id-ID', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+   const fmtTime = (ts) => new Date(ts).toLocaleString('en-US', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
   const gradeColor = { 'A+': 'bg-emerald-500/20 text-emerald-300', 'A': 'bg-cyan-500/20 text-cyan-300' };
   return (
     <Sheet onClose={onClose}>
       <div className="mb-3 flex items-center justify-between">
         <div>
           <div className="text-lg font-bold text-white">Signal Alerts</div>
-          <div className="text-xs text-slate-400">{alerts.length} Grade A/A+ tercatat</div>
+          <div className="text-xs text-slate-400">{alerts.length} Grade A/A+ recorded</div>
         </div>
         <button onClick={onClose} className="rounded-full p-1 text-slate-400 hover:text-white"><X className="h-5 w-5" /></button>
       </div>
       <div className="mb-3 flex items-center justify-between rounded-xl border border-slate-800 bg-slate-900/60 px-3 py-2">
         <div className="flex items-center gap-2 text-xs text-slate-300">
           <Bell className="h-3.5 w-3.5 text-cyan-400" />
-          <span>Auto-scan tiap 60 detik</span>
+           <span>Auto-scan every 60 seconds</span>
         </div>
         <button onClick={toggleEnabled} className={`rounded-full px-2 py-1 text-[10px] font-bold uppercase ${enabled ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-700 text-slate-400'}`}>{enabled ? 'ON' : 'OFF'}</button>
       </div>
       {alerts.length > 0 && (
         <div className="mb-2 flex justify-end">
-          <button onClick={() => { if (window.confirm('Hapus semua riwayat alert?')) clearSignalAlerts(); }} className="text-[11px] text-slate-500 hover:text-red-400">Hapus riwayat</button>
+           <button onClick={() => { if (window.confirm('Delete all alert history?')) clearSignalAlerts(); }} className="text-[11px] text-slate-500 hover:text-red-400">Delete history</button>
         </div>
       )}
       <div className="max-h-[55vh] space-y-2 overflow-y-auto">
         {alerts.length === 0 && (
-          <div className="py-10 text-center text-xs text-slate-500">Belum ada Grade A/A+.<br />Poller memantau top 15 pair setiap 60s.</div>
+           <div className="py-10 text-center text-xs text-slate-500">No Grade A/A+ alerts yet.<br />The poller monitors the top 15 pairs every 60s.</div>
         )}
         {alerts.map((a) => {
           const isBuy = a.signal && a.signal.includes('Buy');

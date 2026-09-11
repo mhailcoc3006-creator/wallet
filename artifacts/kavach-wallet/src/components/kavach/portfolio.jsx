@@ -18,7 +18,7 @@ export const PortfolioTab = ({
 
   const copyAddress = async (addr) => {
     await navigator.clipboard.writeText(addr);
-    toast.success('Alamat disalin.');
+     toast.success('Address copied.');
   };
 
   return (
@@ -31,7 +31,7 @@ export const PortfolioTab = ({
           </div>
           <div className="min-w-0">
             <div className="truncate text-sm font-semibold text-white">{activeWallet?.name || 'No wallet'}</div>
-            <div className="text-[10px] text-slate-500">{walletCount} wallet total • ketuk untuk switch</div>
+             <div className="text-[10px] text-slate-500">{walletCount} wallet{walletCount === 1 ? '' : 's'} total • tap to switch</div>
           </div>
         </div>
         <ChevronDown className="h-4 w-4 text-slate-500" />
@@ -42,7 +42,7 @@ export const PortfolioTab = ({
         <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-lime-400/15 blur-3xl" />
         <div className="relative">
           <div className="flex items-center justify-between">
-            <span className="text-xs uppercase tracking-widest text-slate-400">Portfolio Aktif</span>
+             <span className="text-xs uppercase tracking-widest text-slate-400">Active Portfolio</span>
             <button onClick={() => setHidden(!hidden)} className="text-slate-400 hover:text-white">
               {hidden ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
@@ -67,10 +67,10 @@ export const PortfolioTab = ({
 
           <div className="mt-5 grid grid-cols-2 gap-2">
             <Button onClick={onSend} disabled={!activeWallet} className="h-11 rounded-xl bg-lime-400 text-slate-950 shadow-md shadow-lime-400/15 hover:bg-lime-300 disabled:opacity-40">
-              <Send className="mr-2 h-4 w-4" /> Kirim
+               <Send className="mr-2 h-4 w-4" /> Send
             </Button>
             <Button onClick={onReceive} disabled={!activeWallet} className="h-11 rounded-xl bg-slate-800 text-slate-100 hover:bg-slate-700 disabled:opacity-40">
-              <QrCode className="mr-2 h-4 w-4" /> Terima
+               <QrCode className="mr-2 h-4 w-4" /> Receive
             </Button>
           </div>
         </div>
@@ -79,7 +79,7 @@ export const PortfolioTab = ({
       {/* Assets */}
       <div>
         <div className="mb-3 flex items-center justify-between">
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400">Aset di {CHAINS.length} Chain</h3>
+           <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400">Assets across {CHAINS.length} chains</h3>
           <span className="text-xs text-slate-500">Native tokens</span>
         </div>
         <div className="space-y-2">
@@ -101,7 +101,7 @@ export const PortfolioTab = ({
           <KeyRound className="h-5 w-5 flex-shrink-0 text-lime-300" />
           <div className="flex-1">
             <div className="text-sm font-semibold text-white">Recovery Phrase</div>
-            <div className="text-xs text-slate-400">Backup wallet aktif. Simpan offline.</div>
+             <div className="text-xs text-slate-400">Back up your active wallet. Store it offline.</div>
           </div>
           <Button size="sm" variant="outline" onClick={onOpenPhrase} disabled={!activeWallet} className="border-slate-700 bg-slate-800/60 text-white hover:bg-slate-700">
             Lihat

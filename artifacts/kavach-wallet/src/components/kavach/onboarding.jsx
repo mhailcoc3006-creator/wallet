@@ -36,7 +36,7 @@ const ScreenHeader = ({ onBack, title, subtitle }) => (
   <div className="mb-8">
     {onBack && (
       <button onClick={onBack} className="mb-6 flex items-center gap-1 text-sm text-slate-400 hover:text-white">
-        <ArrowLeft className="h-4 w-4" /> Kembali
+        <ArrowLeft className="h-4 w-4" /> Back
       </button>
     )}
     <h2 className="text-2xl font-bold tracking-tight text-white">{title}</h2>
@@ -59,10 +59,10 @@ export const Welcome = ({ onCreate, onImport, onLogin, hasVault }) => (
     </div>
     <div className="flex flex-1 flex-col justify-center py-12">
       <h1 className="text-4xl font-bold leading-tight tracking-tight text-white">
-        Wallet crypto <span className="bg-gradient-to-r from-lime-300 to-lime-500 bg-clip-text text-transparent">yang benar-benar milik Anda.</span>
+        A crypto wallet <span className="bg-gradient-to-r from-lime-300 to-lime-500 bg-clip-text text-transparent">that truly belongs to you.</span>
       </h1>
       <p className="mt-4 text-base leading-relaxed text-slate-400">
-        Kelola aset di 10 chain — Bitcoin, Ethereum, Solana, BNB, Polygon, Arbitrum, Optimism, Base, Avalanche, Tron — dari satu recovery phrase.
+        Manage assets across 10 chains — Bitcoin, Ethereum, Solana, BNB, Polygon, Arbitrum, Optimism, Base, Avalanche, and Tron — from one recovery phrase.
       </p>
       <div className="mt-8 grid grid-cols-3 gap-3">
         <FeaturePill icon={Layers} label="10 Chain" />
@@ -72,17 +72,17 @@ export const Welcome = ({ onCreate, onImport, onLogin, hasVault }) => (
     </div>
     <div className="space-y-3">
       <Button onClick={onCreate} className="h-14 w-full rounded-2xl bg-lime-400 text-base font-semibold text-slate-950 shadow-lg shadow-lime-400/25 hover:bg-lime-300">
-        <Sparkles className="mr-2 h-5 w-5" /> Daftar Akun & Buat Wallet
+        <Sparkles className="mr-2 h-5 w-5" /> Create Account & Wallet
       </Button>
       <Button onClick={onImport} variant="outline" className="h-14 w-full rounded-2xl border-slate-700 bg-slate-900/60 text-base font-semibold text-white hover:bg-slate-800">
-        <Download className="mr-2 h-5 w-5" /> Import Wallet & Daftar
+        <Download className="mr-2 h-5 w-5" /> Import Wallet
       </Button>
       {hasVault && (
         <Button onClick={onLogin} variant="outline" className="h-12 w-full rounded-2xl border-slate-700 bg-slate-950/50 text-sm font-semibold text-slate-300 hover:bg-slate-800 hover:text-white">
-          <KeyRound className="mr-2 h-4 w-4" /> Sudah punya akun? Masuk
+          <KeyRound className="mr-2 h-4 w-4" /> Already have an account? Sign in
         </Button>
       )}
-      <p className="pt-2 text-center text-xs text-slate-500">Akun & wallet Anda dienkripsi lokal di device. Tidak ada server yang menyimpan password atau phrase.</p>
+      <p className="pt-2 text-center text-xs text-slate-500">Your account and wallet are encrypted locally on this device. No server stores your password or recovery phrase.</p>
     </div>
   </motion.div>
 );
@@ -104,7 +104,7 @@ export const CreateWallet = ({ onBack, onGenerated }) => {
   };
   return (
     <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }} className="mx-auto flex min-h-screen max-w-md flex-col px-6 py-10">
-      <ScreenHeader onBack={onBack} title="Buat Wallet Baru" subtitle="12 kata rahasia adalah SATU-SATUNYA cara memulihkan wallet Anda." />
+      <ScreenHeader onBack={onBack} title="Create New Wallet" subtitle="Your 12-word recovery phrase is the ONLY way to restore this wallet." />
       <div className="flex flex-1 flex-col items-center justify-center gap-8 text-center">
         <div className="relative">
           <div className="absolute inset-0 animate-pulse rounded-full bg-lime-400/15 blur-2xl" />
@@ -113,13 +113,13 @@ export const CreateWallet = ({ onBack, onGenerated }) => {
           </div>
         </div>
         <div className="w-full space-y-2">
-          <InfoRow icon={Lock} text="Kunci dibuat lokal di device — tidak pernah dikirim ke server." />
-          <InfoRow icon={Shield} text="BIP-39 + BIP-44 multi-chain, ter-enkripsi AES-GCM di device." />
-          <InfoRow icon={AlertTriangle} text="Simpan recovery phrase di tempat aman." />
+          <InfoRow icon={Lock} text="Keys are created locally on this device and never sent to a server." />
+          <InfoRow icon={Shield} text="BIP-39 + BIP-44 multi-chain support, encrypted with AES-GCM on this device." />
+          <InfoRow icon={AlertTriangle} text="Store your recovery phrase somewhere safe." />
         </div>
       </div>
       <Button onClick={handle} disabled={generating} className="h-14 w-full rounded-2xl bg-lime-400 text-base font-semibold text-slate-950 shadow-lg shadow-lime-400/20 hover:bg-lime-300">
-        {generating ? <><RefreshCw className="mr-2 h-5 w-5 animate-spin" /> Membuat...</> : <>Generate Recovery Phrase <ArrowRight className="ml-2 h-5 w-5" /></>}
+        {generating ? <><RefreshCw className="mr-2 h-5 w-5 animate-spin" /> Creating...</> : <>Generate Recovery Phrase <ArrowRight className="ml-2 h-5 w-5" /></>}
       </Button>
     </motion.div>
   );
@@ -130,17 +130,17 @@ const ConfirmPhrase = ({ expected, onBack, onConfirmed }) => {
   const [error, setError] = useState('');
   const handleConfirm = () => {
     const cleaned = value.trim().toLowerCase().replace(/\s+/g, ' ');
-    if (cleaned !== expected.trim().toLowerCase()) return setError('Recovery phrase tidak cocok.');
+    if (cleaned !== expected.trim().toLowerCase()) return setError('Recovery phrase does not match.');
     onConfirmed();
   };
   return (
     <>
-      <Textarea value={value} onChange={(e) => { setValue(e.target.value); setError(''); }} placeholder="Ketik 12 kata, dipisahkan spasi..." className="min-h-[140px] resize-none rounded-2xl border-slate-700 bg-slate-900/70 text-sm text-white placeholder:text-slate-500 focus-visible:ring-emerald-500" />
+      <Textarea value={value} onChange={(e) => { setValue(e.target.value); setError(''); }} placeholder="Type the 12 words separated by spaces..." className="min-h-[140px] resize-none rounded-2xl border-slate-700 bg-slate-900/70 text-sm text-white placeholder:text-slate-500 focus-visible:ring-lime-400" />
       {error && <p className="mt-3 text-xs text-red-400">{error}</p>}
       <div className="flex-1" />
       <div className="flex gap-3">
-        <Button variant="outline" onClick={onBack} className="h-14 flex-1 rounded-2xl border-slate-700 bg-slate-900/60 text-slate-200 hover:bg-slate-800">Lihat lagi</Button>
-        <Button onClick={handleConfirm} disabled={!value.trim()} className="h-14 flex-[2] rounded-2xl bg-lime-400 text-slate-950 shadow-lg shadow-lime-400/20 hover:bg-lime-300 disabled:opacity-40">Konfirmasi</Button>
+        <Button variant="outline" onClick={onBack} className="h-14 flex-1 rounded-2xl border-slate-700 bg-slate-900/60 text-slate-200 hover:bg-slate-800">Review</Button>
+        <Button onClick={handleConfirm} disabled={!value.trim()} className="h-14 flex-[2] rounded-2xl bg-lime-400 text-slate-950 shadow-lg shadow-lime-400/20 hover:bg-lime-300 disabled:opacity-40">Confirm</Button>
       </div>
     </>
   );
@@ -154,20 +154,20 @@ export const BackupPhrase = ({ wallet, onDone, onBack }) => {
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(wallet.mnemonic);
-    setCopied(true); toast.success('Recovery phrase disalin.');
+    setCopied(true); toast.success('Recovery phrase copied.');
     setTimeout(() => setCopied(false), 2000);
   };
 
   return (
     <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }} className="mx-auto flex min-h-screen max-w-md flex-col px-6 py-10">
-      <ScreenHeader onBack={onBack} title={step === 'reveal' ? 'Recovery Phrase Anda' : 'Konfirmasi Recovery Phrase'} subtitle={step === 'reveal' ? 'Tulis 12 kata ini di kertas dan simpan offline.' : 'Ketik ulang sesuai urutan.'} />
+      <ScreenHeader onBack={onBack} title={step === 'reveal' ? 'Your Recovery Phrase' : 'Confirm Recovery Phrase'} subtitle={step === 'reveal' ? 'Write these 12 words down and store them offline.' : 'Type the words again in the same order.'} />
       {step === 'reveal' ? (
         <>
           <Card className="relative overflow-hidden border-slate-800 bg-slate-900/70 p-5">
             {!revealed && (
               <button onClick={() => setRevealed(true)} className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-slate-900/95 backdrop-blur-sm">
                 <Eye className="h-8 w-8 text-lime-300" />
-                <span className="text-sm font-medium text-slate-200">Ketuk untuk mengungkap</span>
+                <span className="text-sm font-medium text-slate-200">Tap to reveal</span>
               </button>
             )}
             <div className="grid grid-cols-3 gap-2">
@@ -182,14 +182,14 @@ export const BackupPhrase = ({ wallet, onDone, onBack }) => {
           {revealed && (
             <div className="mt-4 flex gap-2">
               <Button variant="outline" onClick={handleCopy} className="flex-1 border-slate-700 bg-slate-900/60 text-slate-200 hover:bg-slate-800">
-                {copied ? <><Check className="mr-2 h-4 w-4 text-lime-300" /> Tersalin</> : <><Copy className="mr-2 h-4 w-4" /> Salin</>}
+                {copied ? <><Check className="mr-2 h-4 w-4 text-lime-300" /> Copied</> : <><Copy className="mr-2 h-4 w-4" /> Copy</>}
               </Button>
               <Button variant="outline" onClick={() => setRevealed(false)} className="border-slate-700 bg-slate-900/60 text-slate-200 hover:bg-slate-800"><EyeOff className="h-4 w-4" /></Button>
             </div>
           )}
           <div className="flex-1" />
           <Button onClick={() => setStep('confirm')} disabled={!revealed} className="h-14 w-full rounded-2xl bg-lime-400 text-slate-950 shadow-lg shadow-lime-400/20 hover:bg-lime-300 disabled:opacity-40">
-            Saya sudah menyimpannya <ArrowRight className="ml-2 h-5 w-5" />
+            I have stored it <ArrowRight className="ml-2 h-5 w-5" />
           </Button>
         </>
       ) : (
@@ -209,13 +209,13 @@ export const ImportWallet = ({ onBack, onImported }) => {
       await new Promise((r) => setTimeout(r, 200));
       const w = importFromMnemonic(phrase);
       onImported(w);
-    } catch (e) { setError(e.message || 'Recovery phrase tidak valid.'); }
+    } catch (e) { setError(e.message || 'Invalid recovery phrase.'); }
     setLoading(false);
   };
   return (
     <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }} className="mx-auto flex min-h-screen max-w-md flex-col px-6 py-10">
-      <ScreenHeader onBack={onBack} title="Import Wallet" subtitle="Masukkan 12/24 kata recovery phrase. Diproses lokal di device." />
-      <Textarea value={phrase} onChange={(e) => { setPhrase(e.target.value); setError(''); }} placeholder="contoh: silent laptop river ..." className="min-h-[160px] resize-none rounded-2xl border-slate-700 bg-slate-900/70 text-sm text-white placeholder:text-slate-500 focus-visible:ring-emerald-500" />
+      <ScreenHeader onBack={onBack} title="Import Wallet" subtitle="Enter your 12 or 24-word recovery phrase. It is processed locally on this device." />
+      <Textarea value={phrase} onChange={(e) => { setPhrase(e.target.value); setError(''); }} placeholder="example: silent laptop river ..." className="min-h-[160px] resize-none rounded-2xl border-slate-700 bg-slate-900/70 text-sm text-white placeholder:text-slate-500 focus-visible:ring-lime-400" />
       {error && (
         <div className="mt-3 flex items-start gap-2 rounded-xl border border-red-500/30 bg-red-500/10 p-3">
           <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-red-400" />
@@ -224,7 +224,7 @@ export const ImportWallet = ({ onBack, onImported }) => {
       )}
       <div className="flex-1" />
       <Button onClick={handle} disabled={loading || !phrase.trim()} className="h-14 w-full rounded-2xl bg-lime-400 text-slate-950 shadow-lg shadow-lime-400/20 hover:bg-lime-300 disabled:opacity-40">
-        {loading ? <><RefreshCw className="mr-2 h-5 w-5 animate-spin" /> Memvalidasi...</> : <>Lanjutkan <ArrowRight className="ml-2 h-5 w-5" /></>}
+        {loading ? <><RefreshCw className="mr-2 h-5 w-5 animate-spin" /> Validating...</> : <>Continue <ArrowRight className="ml-2 h-5 w-5" /></>}
       </Button>
     </motion.div>
   );
@@ -248,50 +248,50 @@ export const SetupPassword = ({ onBack, onDone }) => {
     try {
       await onDone({ userName: name.trim(), password: pwd });
     } catch (err) {
-      setError(err.message || 'Pendaftaran gagal.');
+      setError(err.message || 'Registration failed.');
       setLoading(false);
     }
   };
 
   return (
     <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }} className="mx-auto flex min-h-screen max-w-md flex-col px-6 py-10">
-      <ScreenHeader onBack={onBack} title="Daftar Akun Cavendish" subtitle="Buat nama akun dan password vault. Semua wallet Anda dienkripsi dengan password ini di device." />
+      <ScreenHeader onBack={onBack} title="Create Your Cavendish Account" subtitle="Create an account name and vault password. Your wallets are encrypted with this password on this device." />
 
       <form onSubmit={submit} className="space-y-4">
         <div>
-          <div className="mb-2 text-xs uppercase tracking-widest text-slate-500">Nama Anda</div>
+          <div className="mb-2 text-xs uppercase tracking-widest text-slate-500">Your name</div>
           <div className="relative">
             <User className="absolute left-3 top-3.5 h-4 w-4 text-slate-500" />
-            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="contoh: Andi" autoFocus className="h-12 rounded-xl border-slate-700 bg-slate-900/70 pl-9 text-sm text-white placeholder:text-slate-500" />
+            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="for example: Alex" autoFocus className="h-12 rounded-xl border-slate-700 bg-slate-900/70 pl-9 text-sm text-white placeholder:text-slate-500" />
           </div>
         </div>
 
         <div>
-          <div className="mb-2 text-xs uppercase tracking-widest text-slate-500">Password (min. 6 karakter)</div>
+          <div className="mb-2 text-xs uppercase tracking-widest text-slate-500">Password (min. 6 characters)</div>
           <div className="relative">
             <Lock className="absolute left-3 top-3.5 h-4 w-4 text-slate-500" />
-            <Input type={show ? 'text' : 'password'} value={pwd} onChange={(e) => setPwd(e.target.value)} placeholder="password kuat" className="h-12 rounded-xl border-slate-700 bg-slate-900/70 pl-9 pr-10 text-sm text-white" />
+            <Input type={show ? 'text' : 'password'} value={pwd} onChange={(e) => setPwd(e.target.value)} placeholder="strong password" className="h-12 rounded-xl border-slate-700 bg-slate-900/70 pl-9 pr-10 text-sm text-white" />
             <button type="button" onClick={() => setShow(!show)} className="absolute right-3 top-3 text-slate-500 hover:text-white">{show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button>
           </div>
         </div>
 
         <div>
-          <div className="mb-2 text-xs uppercase tracking-widest text-slate-500">Konfirmasi Password</div>
+          <div className="mb-2 text-xs uppercase tracking-widest text-slate-500">Confirm password</div>
           <div className="relative">
             <Lock className="absolute left-3 top-3.5 h-4 w-4 text-slate-500" />
-            <Input type={show ? 'text' : 'password'} value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder="ulangi password" className="h-12 rounded-xl border-slate-700 bg-slate-900/70 pl-9 text-sm text-white" />
+            <Input type={show ? 'text' : 'password'} value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder="repeat password" className="h-12 rounded-xl border-slate-700 bg-slate-900/70 pl-9 text-sm text-white" />
           </div>
-          {confirm && pwd !== confirm && <p className="mt-1 text-xs text-red-400">Password tidak cocok.</p>}
+          {confirm && pwd !== confirm && <p className="mt-1 text-xs text-red-400">Passwords do not match.</p>}
         </div>
 
         <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-[11px] leading-relaxed text-amber-200">
-          &#9888;&#65039; Password ini TIDAK BISA di-reset. Simpan dengan aman. Recovery phrase Anda TETAP jadi backup terakhir.
+          &#9888;&#65039; This password CANNOT be reset. Store it safely. Your recovery phrase remains the final backup.
         </div>
 
         {error && <p className="text-xs text-red-400">{error}</p>}
 
         <Button type="submit" disabled={!canSubmit} className="h-14 w-full rounded-2xl bg-lime-400 text-base font-semibold text-slate-950 shadow-lg shadow-lime-400/20 hover:bg-lime-300 disabled:opacity-40">
-          {loading ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Mendaftarkan akun...</> : <>Daftar & Masuk <ArrowRight className="ml-2 h-5 w-5" /></>}
+          {loading ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Creating account...</> : <>Create & Sign in <ArrowRight className="ml-2 h-5 w-5" /></>}
         </Button>
       </form>
     </motion.div>

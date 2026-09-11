@@ -49,7 +49,7 @@ export const WatchlistTab = () => {
         s.markAlertTriggered(a.id);
         toast.success(`🔔 ${a.symbol} ${a.direction === 'above' ? 'naik ke' : 'turun ke'} ${fmtUsd(cur)} (target ${fmtUsd(a.threshold)})`, { duration: 10000 });
         if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
-          try { new Notification('Cavendish — Price Alert', { body: `${a.symbol} ${a.direction === 'above' ? '>=' : '<='} ${fmtUsd(a.threshold)} • sekarang ${fmtUsd(cur)}` }); } catch {}
+          try { new Notification('Cavendish — Price Alert', { body: `${a.symbol} ${a.direction === 'above' ? '>=' : '<='} ${fmtUsd(a.threshold)} • now ${fmtUsd(cur)}` }); } catch {}
         }
       }
     }
@@ -61,7 +61,7 @@ export const WatchlistTab = () => {
         <div className="flex items-center justify-between">
           <div>
             <div className="text-sm font-semibold text-white">Watchlist</div>
-            <div className="text-xs text-slate-400">Pantau harga token favorit Anda</div>
+            <div className="text-xs text-slate-400">Track prices for your favorite tokens</div>
           </div>
           <div className="flex gap-2">
             <Button size="sm" variant="outline" onClick={() => setShowAlerts(true)} className="border-slate-700 bg-slate-900/60 text-slate-200 hover:bg-slate-800">
@@ -77,7 +77,7 @@ export const WatchlistTab = () => {
       <div className="space-y-2">
         {watchlist.length === 0 && (
           <Card className="border-slate-800 bg-slate-900/60 p-8 text-center text-sm text-slate-400">
-            Watchlist kosong. Tambahkan token untuk mulai melacak harga.
+            Your watchlist is empty. Add a token to start tracking prices.
           </Card>
         )}
         {watchlist.map((coin, i) => {
@@ -169,7 +169,7 @@ const AddTokenSheet = ({ onClose }) => {
             key={c.id}
             onClick={() => {
               addToWatchlist({ id: c.id, symbol: c.symbol, name: c.name, image: c.image });
-              toast.success(`${c.symbol} ditambahkan ke watchlist.`);
+               toast.success(`${c.symbol} added to your watchlist.`);
               onClose();
             }}
             disabled={inList(c.id)}
@@ -180,7 +180,7 @@ const AddTokenSheet = ({ onClose }) => {
               <div className="truncate text-sm font-semibold text-white">{c.name}</div>
               <div className="text-xs text-slate-500">{c.symbol}{c.marketCapRank ? ` • #${c.marketCapRank}` : ''}</div>
             </div>
-            {inList(c.id) ? <span className="text-xs text-emerald-400">Ada</span> : <Plus className="h-4 w-4 text-emerald-400" />}
+            {inList(c.id) ? <span className="text-xs text-emerald-400">Added</span> : <Plus className="h-4 w-4 text-emerald-400" />}
           </button>
         ))}
       </div>
@@ -200,7 +200,7 @@ const NewAlertSheet = ({ coin, currentPrice, onClose }) => {
       try { await Notification.requestPermission(); } catch {}
     }
     addAlert({ coinGeckoId: coin.id, symbol: coin.symbol, threshold: t, direction });
-    toast.success(`Alert aktif: ${coin.symbol} ${direction === 'above' ? '≥' : '≤'} ${fmtUsd(t)}`);
+    toast.success(`Alert enabled: ${coin.symbol} ${direction === 'above' ? '≥' : '≤'} ${fmtUsd(t)}`);
     onClose();
   };
 
@@ -209,18 +209,18 @@ const NewAlertSheet = ({ coin, currentPrice, onClose }) => {
       <div className="mb-4 flex items-center justify-between">
         <div>
           <div className="text-lg font-bold text-white">Price Alert</div>
-          <div className="text-xs text-slate-400">Notifikasi saat harga {coin.symbol} tercapai</div>
+          <div className="text-xs text-slate-400">Get notified when {coin.symbol} reaches this price</div>
         </div>
         <button onClick={onClose} className="rounded-full p-1 text-slate-400 hover:text-white"><X className="h-5 w-5" /></button>
       </div>
 
-      {currentPrice && <div className="mb-3 rounded-xl border border-slate-800 bg-slate-900/60 p-3 text-xs text-slate-300">Harga saat ini: <span className="font-bold text-white">{fmtUsd(currentPrice)}</span></div>}
+      {currentPrice && <div className="mb-3 rounded-xl border border-slate-800 bg-slate-900/60 p-3 text-xs text-slate-300">Current price: <span className="font-bold text-white">{fmtUsd(currentPrice)}</span></div>}
 
       <div className="mb-2 text-xs uppercase tracking-widest text-slate-500">Kondisi</div>
       <div className="grid grid-cols-2 gap-2">
         {['above', 'below'].map((d) => (
           <button key={d} onClick={() => setDirection(d)} className={`rounded-xl border p-3 text-sm font-medium transition ${direction === d ? 'border-emerald-500/60 bg-emerald-500/10 text-white' : 'border-slate-800 bg-slate-900/60 text-slate-400 hover:text-slate-200'}`}>
-            {d === 'above' ? 'Naik di atas' : 'Turun di bawah'}
+            {d === 'above' ? 'Above' : 'Below'}
           </button>
         ))}
       </div>
@@ -231,7 +231,7 @@ const NewAlertSheet = ({ coin, currentPrice, onClose }) => {
         <Input type="number" value={threshold} onChange={(e) => setThreshold(e.target.value)} placeholder="0.00" className="h-14 rounded-xl border-slate-700 bg-slate-900/70 pl-8 text-lg font-semibold text-white placeholder:text-slate-600" />
       </div>
 
-      <Button onClick={submit} disabled={!parseFloat(threshold)} className="mt-5 h-13 w-full rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 py-3 text-base font-semibold text-white hover:from-emerald-400 hover:to-teal-400 disabled:opacity-40">Aktifkan Alert</Button>
+      <Button onClick={submit} disabled={!parseFloat(threshold)} className="mt-5 h-13 w-full rounded-2xl bg-lime-400 py-3 text-base font-semibold text-slate-950 hover:bg-lime-300 disabled:opacity-40">Enable Alert</Button>
     </Sheet>
   );
 };
@@ -244,12 +244,12 @@ const AlertsSheet = ({ onClose, prices }) => {
       <div className="mb-4 flex items-center justify-between">
         <div>
           <div className="text-lg font-bold text-white">Price Alerts</div>
-          <div className="text-xs text-slate-400">{alerts.length} alert aktif</div>
+          <div className="text-xs text-slate-400">{alerts.length} active alert{alerts.length === 1 ? '' : 's'}</div>
         </div>
         <button onClick={onClose} className="rounded-full p-1 text-slate-400 hover:text-white"><X className="h-5 w-5" /></button>
       </div>
       <div className="space-y-2">
-        {alerts.length === 0 && <div className="py-6 text-center text-sm text-slate-500">Belum ada alert. Ketuk ikon lonceng pada token untuk membuat alert.</div>}
+        {alerts.length === 0 && <div className="py-6 text-center text-sm text-slate-500">No alerts yet. Tap the bell icon on a token to create one.</div>}
         {alerts.map((a) => {
           const cur = prices[a.coinGeckoId]?.usd;
           return (
@@ -259,7 +259,7 @@ const AlertsSheet = ({ onClose, prices }) => {
               </div>
               <div className="min-w-0 flex-1">
                 <div className="text-sm font-semibold text-white">{a.symbol} {a.direction === 'above' ? '≥' : '≤'} {fmtUsd(a.threshold)}</div>
-                <div className="text-xs text-slate-500">{a.triggered ? 'Tercapai' : 'Menunggu'} {cur != null && `• sekarang ${fmtUsd(cur)}`}</div>
+                <div className="text-xs text-slate-500">{a.triggered ? 'Triggered' : 'Waiting'} {cur != null && `• now ${fmtUsd(cur)}`}</div>
               </div>
               <button onClick={() => removeAlert(a.id)} className="rounded-lg bg-slate-800 p-1.5 text-slate-400 hover:bg-slate-700 hover:text-red-400"><Trash2 className="h-3.5 w-3.5" /></button>
             </div>

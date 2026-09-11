@@ -29,17 +29,17 @@ export const LockScreen = ({ onUnlocked, onReset }) => {
     try {
       const { state, key, meta } = await unlockVault(password);
       useWalletStore.getState().hydrate({ state, key, meta });
-      toast.success(`Selamat datang kembali, ${meta.userName}.`);
+      toast.success(`Welcome back, ${meta.userName}.`);
       onUnlocked();
     } catch (err) {
-      setError(err.message || 'Password salah.');
+      setError(err.message || 'Incorrect password.');
     } finally {
       setLoading(false);
     }
   };
 
   const handleReset = () => {
-    if (typeof window !== 'undefined' && window.confirm('Reset akan menghapus SEMUA data wallet Anda dari device ini. Pastikan Anda punya recovery phrase untuk semua wallet. Lanjutkan?')) {
+    if (typeof window !== 'undefined' && window.confirm('Reset will delete ALL wallet data from this device. Make sure you have the recovery phrase for every wallet. Continue?')) {
       clearVault();
       onReset();
     }
@@ -54,8 +54,8 @@ export const LockScreen = ({ onUnlocked, onReset }) => {
         <BrandMark size={72} />
         <div>
             <div className="text-xs uppercase tracking-[0.3em] text-lime-300/90">Welcome back</div>
-          <div className="mt-1 text-3xl font-bold text-white">Halo, {userName}</div>
-          <div className="mt-2 text-sm text-slate-400">Masukkan password untuk membuka vault Anda</div>
+           <div className="mt-1 text-3xl font-bold text-white">Hello, {userName}</div>
+           <div className="mt-2 text-sm text-slate-400">Enter your password to unlock your vault</div>
         </div>
       </motion.div>
 
@@ -66,7 +66,7 @@ export const LockScreen = ({ onUnlocked, onReset }) => {
             type={show ? 'text' : 'password'}
             value={password}
             onChange={(e) => { setPassword(e.target.value); setError(''); }}
-            placeholder="Password akun"
+             placeholder="Account password"
             autoFocus
             className="h-14 rounded-2xl border-slate-700 bg-slate-900/70 pl-12 pr-12 text-sm text-white placeholder:text-slate-500 focus-visible:ring-lime-400"
           />
@@ -87,16 +87,16 @@ export const LockScreen = ({ onUnlocked, onReset }) => {
           disabled={loading || !password}
           className="h-14 w-full rounded-2xl bg-lime-400 text-base font-semibold text-slate-950 shadow-lg shadow-lime-400/25 hover:bg-lime-300 disabled:opacity-40"
         >
-          {loading ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Membuka...</> : <>Login</>}
+           {loading ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Unlocking...</> : <>Sign in</>}
         </Button>
       </form>
 
       <button onClick={handleReset} className="mt-8 flex items-center gap-1 text-xs text-slate-500 hover:text-red-400">
-        <LogOut className="h-3 w-3" /> Lupa password? Reset vault
+         <LogOut className="h-3 w-3" /> Forgot password? Reset vault
       </button>
 
       <div className="mt-auto pt-8 text-center text-[10px] uppercase tracking-widest text-slate-600">
-        Cavendish • Vault ter-enkripsi AES-GCM 256
+         Cavendish • AES-GCM 256 encrypted vault
       </div>
     </motion.div>
   );

@@ -2,34 +2,6 @@ uploads = []
 generated = []
 
 [[outputs]]
-id = "wLn8iY_V4e-FT9_jS81wf"
-uri = "file://artifacts/kavach-wallet/public/cavendish-logo.jpg"
-type = "image"
-title = "Cavendish Logo JPG"
-description = "Logo Cavendish 1200×1200 dengan latar hitam dan aksen hijau stabilo."
-
-[[outputs]]
-id = "lJjVXa1qURZFf9f2eRl_A"
-uri = "file://artifacts/kavach-wallet/public/cavendish-logo-hd.jpg"
-type = "image"
-title = "Cavendish Logo HD JPG"
-description = "Logo Cavendish HD 4096×4096 yang dirasterisasi langsung dari SVG vektor untuk hasil lebih tajam."
-
-[[outputs]]
-id = "lJcU8gW4j-0eCubBqGElf"
-uri = "file://attached_assets/generated_images/cavendish-elegant-logo.jpg"
-type = "image"
-title = "Cavendish Elegant Logo"
-description = "Alternatif logo Cavendish yang lebih elegan dengan monogram C dan aksen daun subtil dalam format JPG HD."
-
-[[outputs]]
-id = "IudgDm-HQrxKu5VSxx0gJ"
-uri = "file://attached_assets/generated_images/cavendish-modern-lime-logo.jpg"
-type = "image"
-title = "Cavendish Modern Lime Logo"
-description = "Logo Cavendish alternatif dengan latar hijau stabilo dan monogram hitam bergaya loop rantai modern yang orisinal."
-
-[[outputs]]
 id = "9ZRMr_7ikAqyZye25KGsd"
 uri = "file://attached_assets/generated_images/cavendish-feather-arrow-logo.jpg"
 type = "image"
@@ -49,10 +21,3 @@ uri = "file://artifacts/kavach-wallet/public/cavendish-rounded-feather-logo-4k.j
 type = "image"
 title = "Cavendish Rounded Feather Logo 4K"
 description = "Versi 4K dengan ujung feather-arrow membulat dan tumpul seperti referensi."
-
-[[outputs]]
-id = "QGH0xJM8PyMvtPBGgyy6E"
-uri = "file://artifacts/kavach-wallet/public/cavendish-angular-feather-logo-4k.jpg"
-type = "image"
-title = "Cavendish Angular Feather Logo 4K"
-description = "Versi 4K dengan ujung simbol patah dan bersudut seperti referensi, bukan rounded."

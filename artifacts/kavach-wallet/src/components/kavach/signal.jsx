@@ -159,7 +159,7 @@ export const SignalTab = () => {
           <div className="flex items-start gap-2">
             <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-red-400" />
             <div className="text-xs text-red-200">
-              <div className="font-semibold">Gagal memuat sinyal</div>
+              <div className="font-semibold">Could not load signals</div>
               <div>{error}</div>
             </div>
           </div>
@@ -285,7 +285,7 @@ const SingleView = ({ data, symbol, interval, sty, SignalIcon }) => (
     </Card>
 
     <div className="pb-2 text-center text-[10px] uppercase tracking-widest text-slate-600">
-      Bukan saran keuangan \u2022 Update {new Date(data.last_updated).toLocaleTimeString('id-ID')}
+      Not financial advice \u2022 Updated {new Date(data.last_updated).toLocaleTimeString('en-US')}
     </div>
   </>
 );
@@ -333,13 +333,13 @@ const ScannerView = ({ data, loading, filter, setFilter, onSelectSymbol }) => {
 
       {rows.length === 0 && !loading && (
         <Card className="border-slate-800 bg-slate-900/60 p-8 text-center text-xs text-slate-500">
-          Tidak ada sinyal yang cocok filter ini.
+          No signals match this filter.
         </Card>
       )}
 
       {data && (
         <div className="pt-1 text-center text-[10px] uppercase tracking-widest text-slate-600">
-          Scanned {data.count} pair \u2022 update {new Date(data.generated_at).toLocaleTimeString('id-ID')}
+           Scanned {data.count} pairs \u2022 updated {new Date(data.generated_at).toLocaleTimeString('en-US')}
         </div>
       )}
     </div>
@@ -407,14 +407,14 @@ const PairsPicker = ({ pairs, current, onPick, onClose }) => {
     <Sheet onClose={onClose}>
       <div className="mb-3 flex items-center justify-between">
         <div>
-          <div className="text-lg font-bold text-white">Pilih Symbol</div>
-          <div className="text-xs text-slate-500">{pairs.length} USDT perpetuals tersedia</div>
+          <div className="text-lg font-bold text-white">Select Symbol</div>
+          <div className="text-xs text-slate-500">{pairs.length} USDT perpetuals available</div>
         </div>
         <button onClick={onClose} className="rounded-full p-1 text-slate-400 hover:text-white"><X className="h-5 w-5" /></button>
       </div>
       <div className="relative">
         <Search className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
-        <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari BTC, ETH, PEPE..." autoFocus className="h-11 rounded-xl border-slate-700 bg-slate-900/70 pl-9 text-sm text-white placeholder:text-slate-500" />
+        <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search BTC, ETH, PEPE..." autoFocus className="h-11 rounded-xl border-slate-700 bg-slate-900/70 pl-9 text-sm text-white placeholder:text-slate-500" />
       </div>
       <div className="mt-3 max-h-[60vh] space-y-1.5 overflow-y-auto">
         {filtered.map((p) => (
@@ -433,7 +433,7 @@ const PairsPicker = ({ pairs, current, onPick, onClose }) => {
             </div>
           </button>
         ))}
-        {q && filtered.length === 0 && <div className="py-6 text-center text-xs text-slate-500">Tidak ditemukan pair "{q}"</div>}
+        {q && filtered.length === 0 && <div className="py-6 text-center text-xs text-slate-500">No pair found for "{q}"</div>}
       </div>
     </Sheet>
   );

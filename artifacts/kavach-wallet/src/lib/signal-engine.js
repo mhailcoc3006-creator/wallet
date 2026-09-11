@@ -225,16 +225,16 @@ export function generateSignal(data) {
   const invalidateBuy = (reason) => { if (side === 'long') { signal = 'Hold'; side = 'none'; validationReasons.push(reason); } };
   const invalidateSell = (reason) => { if (side === 'short') { signal = 'Hold'; side = 'none'; validationReasons.push(reason); } };
   // No BUY jika:
-  if (trendScore < 25) invalidateBuy('Trend bearish kuat');
+  if (trendScore < 25) invalidateBuy('Strong bearish trend');
   if (rsi != null && rsi > 82) invalidateBuy('RSI overbought ekstrem');
-  if (fundingPct > 0.18) invalidateBuy('Funding rate terlalu tinggi (longs kepadatan)');
+  if (fundingPct > 0.18) invalidateBuy('Funding rate too high (crowded longs)');
   if (oiChange < -12) invalidateBuy('Open Interest turun tajam');
-  if (volumeScore < 25) invalidateBuy('Volume terlalu rendah');
+  if (volumeScore < 25) invalidateBuy('Volume too low');
   if (structureScore < 25) invalidateBuy('Market structure bearish');
   // No SELL jika:
-  if (trendScore > 75) invalidateSell('Trend bullish kuat');
+  if (trendScore > 75) invalidateSell('Strong bullish trend');
   if (rsi != null && rsi < 18) invalidateSell('RSI oversold ekstrem');
-  if (fundingPct < -0.18) invalidateSell('Funding rate terlalu rendah (shorts kepadatan)');
+  if (fundingPct < -0.18) invalidateSell('Funding rate too low (crowded shorts)');
   if (oiChange > 12 && futuresScore > 60) invalidateSell('OI naik dengan bias bullish');
   if (structureScore > 75) invalidateSell('Market structure bullish');
 
@@ -303,30 +303,30 @@ export function generateSignal(data) {
   // \u2500\u2500\u2500 EXPLANATION \u2500\u2500\u2500
   const explanation = [];
   // Trend
-  if (ema20 > ema50 && ema50 > ema200) explanation.push('EMA20 di atas EMA50 dan EMA200 \u2014 struktur bullish kuat.');
-  else if (ema20 > ema50) explanation.push('EMA20 melewati EMA50 \u2014 momentum jangka pendek bullish.');
-  else if (ema20 < ema50 && ema50 < ema200) explanation.push('EMA20 di bawah EMA50 dan EMA200 \u2014 struktur bearish kuat.');
-  else if (ema20 < ema50) explanation.push('EMA20 di bawah EMA50 \u2014 momentum jangka pendek bearish.');
-  if (adx != null) explanation.push(`ADX ${adx.toFixed(0)} \u2014 kekuatan tren ${trendStrength}.`);
+  if (ema20 > ema50 && ema50 > ema200) explanation.push('EMA20 is above EMA50 and EMA200 \u2014 strong bullish structure.');
+  else if (ema20 > ema50) explanation.push('EMA20 is above EMA50 \u2014 short-term bullish momentum.');
+  else if (ema20 < ema50 && ema50 < ema200) explanation.push('EMA20 is below EMA50 and EMA200 \u2014 strong bearish structure.');
+  else if (ema20 < ema50) explanation.push('EMA20 is below EMA50 \u2014 short-term bearish momentum.');
+  if (adx != null) explanation.push(`ADX ${adx.toFixed(0)} \u2014 ${trendStrength} trend strength.`);
   // Momentum
   if (rsi != null) {
-    if (rsi > 70) explanation.push(`RSI ${rsi.toFixed(0)} \u2014 overbought, waspada koreksi.`);
-    else if (rsi > 55) explanation.push(`RSI ${rsi.toFixed(0)} \u2014 sehat, masih ada ruang naik.`);
-    else if (rsi > 45) explanation.push(`RSI ${rsi.toFixed(0)} \u2014 netral.`);
-    else if (rsi > 30) explanation.push(`RSI ${rsi.toFixed(0)} \u2014 momentum melemah.`);
-    else explanation.push(`RSI ${rsi.toFixed(0)} \u2014 oversold, potensi rebound.`);
+     if (rsi > 70) explanation.push(`RSI ${rsi.toFixed(0)} \u2014 overbought, watch for a correction.`);
+     else if (rsi > 55) explanation.push(`RSI ${rsi.toFixed(0)} \u2014 healthy, with room to rise.`);
+     else if (rsi > 45) explanation.push(`RSI ${rsi.toFixed(0)} \u2014 neutral.`);
+     else if (rsi > 30) explanation.push(`RSI ${rsi.toFixed(0)} \u2014 weakening momentum.`);
+     else explanation.push(`RSI ${rsi.toFixed(0)} \u2014 oversold, possible rebound.`);
   }
   if (macdHist != null && prevMacdHist != null) {
-    if (macdHist > 0 && macdHist > prevMacdHist) explanation.push('MACD histogram positif dan menguat.');
-    else if (macdHist < 0 && macdHist < prevMacdHist) explanation.push('MACD histogram negatif dan melemah.');
+     if (macdHist > 0 && macdHist > prevMacdHist) explanation.push('MACD histogram is positive and strengthening.');
+     else if (macdHist < 0 && macdHist < prevMacdHist) explanation.push('MACD histogram is negative and weakening.');
   }
   // Volume
   if (Math.abs(volSpikePct) > 5) {
-    const arrow = volSpikePct > 0 ? 'meningkat' : 'menurun';
-    explanation.push(`Volume ${arrow} ${Math.abs(volSpikePct).toFixed(0)}% dibanding rata-rata 20 candle.`);
+    const arrow = volSpikePct > 0 ? 'increased' : 'decreased';
+    explanation.push(`Volume ${arrow} ${Math.abs(volSpikePct).toFixed(0)}% versus the 20-candle average.`);
   }
   if (Math.abs(buyBias) > 10) {
-    explanation.push(`Buy vs Sell taker: ${(buyRatio * 100).toFixed(0)}% buy \u2014 ${buyBias > 0 ? 'tekanan beli' : 'tekanan jual'} dominan.`);
+    explanation.push(`Buy versus sell taker: ${(buyRatio * 100).toFixed(0)}% buy \u2014 ${buyBias > 0 ? 'buying pressure' : 'selling pressure'} dominates.`);
   }
   // Structure
   if (breakout) explanation.push(`Harga breakout resistance ${resistance.toFixed(2)} dengan konfirmasi Higher High.`);
@@ -335,26 +335,26 @@ export function generateSignal(data) {
   else if (ll && lh) explanation.push('Struktur Lower Low + Lower High \u2014 downtrend intact.');
   if (choch) explanation.push(`CHoCH ${choch} \u2014 perubahan karakter tren terdeteksi.`);
   // Futures
-  if (Math.abs(fundingPct) < 0.03) explanation.push(`Funding rate ${fundingPct.toFixed(3)}% \u2014 netral.`);
-  else if (fundingPct > 0.08) explanation.push(`Funding rate ${fundingPct.toFixed(3)}% \u2014 longs bayar tinggi, hati-hati.`);
-  else if (fundingPct < -0.08) explanation.push(`Funding rate ${fundingPct.toFixed(3)}% \u2014 shorts bayar tinggi, potensi squeeze bullish.`);
+  if (Math.abs(fundingPct) < 0.03) explanation.push(`Funding rate ${fundingPct.toFixed(3)}% \u2014 neutral.`);
+  else if (fundingPct > 0.08) explanation.push(`Funding rate ${fundingPct.toFixed(3)}% \u2014 longs are paying more, use caution.`);
+  else if (fundingPct < -0.08) explanation.push(`Funding rate ${fundingPct.toFixed(3)}% \u2014 shorts are paying more, possible bullish squeeze.`);
   else explanation.push(`Funding rate ${fundingPct.toFixed(3)}%.`);
   if (Math.abs(oiChange) > 2) {
-    const dir = oiChange > 0 ? 'naik' : 'turun';
-    explanation.push(`Open Interest ${dir} ${Math.abs(oiChange).toFixed(1)}% \u2014 ${oiChange > 0 ? 'likuiditas masuk' : 'posisi ditutup'}.`);
+    const dir = oiChange > 0 ? 'rose' : 'fell';
+    explanation.push(`Open Interest ${dir} ${Math.abs(oiChange).toFixed(1)}% \u2014 ${oiChange > 0 ? 'liquidity is entering' : 'positions are closing'}.`);
   }
   if (lsr > 2 || lsr < 0.5) explanation.push(`Long/Short ratio ${lsr.toFixed(2)} \u2014 crowd ${lsr > 1 ? 'long' : 'short'}, waspada squeeze.`);
   // Validation notes
   if (validationReasons.length) {
-    explanation.push(`\u26a0\ufe0f Sinyal di-invalidasi: ${validationReasons.join(', ')}. Menunggu konfirmasi.`);
+    explanation.push(`\u26a0\ufe0f Signal invalidated: ${validationReasons.join(', ')}. Waiting for confirmation.`);
   }
   // Conclusion
   if (side === 'long') {
-    explanation.push(`Kesimpulan: peluang bullish ${overall >= 75 ? 'cukup tinggi' : 'moderat'} dengan probability ${probability}%.`);
+    explanation.push(`Conclusion: ${overall >= 75 ? 'high' : 'moderate'} bullish potential with ${probability}% probability.`);
   } else if (side === 'short') {
-    explanation.push(`Kesimpulan: peluang bearish ${overall >= 75 ? 'cukup tinggi' : 'moderat'} dengan probability ${probability}%.`);
+    explanation.push(`Conclusion: ${overall >= 75 ? 'high' : 'moderate'} bearish potential with ${probability}% probability.`);
   } else {
-    explanation.push('Kesimpulan: kondisi belum jelas, tunggu konfirmasi tren.');
+    explanation.push('Conclusion: conditions are unclear; wait for trend confirmation.');
   }
 
   return {

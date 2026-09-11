@@ -17,7 +17,7 @@ export const ReceiveSheet = ({ addresses, defaultChainId, onClose }) => {
   const copy = async () => {
     await navigator.clipboard.writeText(address);
     setCopied(true);
-    toast.success('Alamat disalin.');
+     toast.success('Address copied.');
     setTimeout(() => setCopied(false), 2000);
   };
 
@@ -25,8 +25,8 @@ export const ReceiveSheet = ({ addresses, defaultChainId, onClose }) => {
     <Sheet onClose={onClose}>
       <div className="mb-3 flex items-center justify-between">
         <div>
-          <div className="text-lg font-bold text-white">Terima Aset</div>
-          <div className="text-xs text-slate-400">Bagikan alamat di bawah untuk menerima {chain?.symbol}</div>
+           <div className="text-lg font-bold text-white">Receive Assets</div>
+           <div className="text-xs text-slate-400">Share the address below to receive {chain?.symbol}</div>
         </div>
         <button onClick={onClose} className="rounded-full p-1 text-slate-400 hover:text-white"><X className="h-5 w-5" /></button>
       </div>
@@ -40,17 +40,17 @@ export const ReceiveSheet = ({ addresses, defaultChainId, onClose }) => {
           </div>
 
           <div className="mt-6 space-y-2">
-            <div className="text-xs uppercase tracking-widest text-slate-500">Alamat {chain.name}</div>
+             <div className="text-xs uppercase tracking-widest text-slate-500">{chain.name} address</div>
             <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3">
               <div className="break-all font-mono text-xs text-white">{address}</div>
             </div>
              <Button onClick={copy} className="h-12 w-full rounded-xl bg-lime-400 text-slate-950 shadow-lg shadow-lime-400/20 hover:bg-lime-300">
-              {copied ? <><Check className="mr-2 h-4 w-4" /> Tersalin</> : <><Copy className="mr-2 h-4 w-4" /> Salin Alamat</>}
+               {copied ? <><Check className="mr-2 h-4 w-4" /> Copied</> : <><Copy className="mr-2 h-4 w-4" /> Copy Address</>}
             </Button>
           </div>
 
           <div className="mt-4 rounded-xl border border-amber-500/20 bg-amber-500/5 p-3 text-xs text-amber-200">
-            ⚠️ Kirim hanya {chain.symbol} atau token {chain.family === 'evm' ? 'kompatibel EVM' : chain.name} ke alamat ini.
+             ⚠️ Only send {chain.symbol} or {chain.family === 'evm' ? 'EVM-compatible tokens' : chain.name} to this address.
           </div>
         </>
       )}

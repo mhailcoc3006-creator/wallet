@@ -40,7 +40,7 @@ async function prepareTokenDeployment({ mnemonic, name, symbol, supply, networkI
   const wallet = getTokenWallet(mnemonic, networkId);
   const network = await wallet.provider.getNetwork();
   if (Number(network.chainId) !== networkConfig.chainId) {
-    throw new Error(`RPC ${networkConfig.name} tidak tersedia atau network tidak cocok.`);
+    throw new Error(`RPC for ${networkConfig.name} is unavailable or the network does not match.`);
   }
 
   const recipient = await wallet.getAddress();
@@ -81,7 +81,7 @@ export async function estimateKavachToken({ mnemonic, name, symbol, supply, netw
 export async function deployKavachToken({ mnemonic, name, symbol, supply, networkId = 'base' }) {
   const prepared = await prepareTokenDeployment({ mnemonic, name, symbol, supply, networkId });
   if (prepared.estimatedCostWei && prepared.balanceWei < prepared.estimatedCostWei) {
-    throw new Error(`Saldo ETH tidak cukup untuk gas. Perkiraan ${ethers.formatEther(prepared.estimatedCostWei)} ETH, saldo ${ethers.formatEther(prepared.balanceWei)} ETH.`);
+    throw new Error(`Insufficient ETH for gas. Estimated ${ethers.formatEther(prepared.estimatedCostWei)} ETH, balance ${ethers.formatEther(prepared.balanceWei)} ETH.`);
   }
 
   const { wallet, networkConfig, recipient, initialSupply, factory } = prepared;

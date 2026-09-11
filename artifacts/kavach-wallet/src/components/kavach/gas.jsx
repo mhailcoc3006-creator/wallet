@@ -53,7 +53,7 @@ export const GasTab = ({ prices }) => {
             </div>
             <div>
               <div className="text-sm font-semibold text-white">Gas Fee Estimator</div>
-              <div className="text-xs text-slate-400">Real-time gas untuk transaksi native (21k gas)</div>
+              <div className="text-xs text-slate-400">Real-time gas for native transactions (21k gas)</div>
             </div>
           </div>
           <Button size="icon" variant="ghost" onClick={load} className="h-8 w-8 text-slate-400 hover:text-white">
@@ -62,7 +62,7 @@ export const GasTab = ({ prices }) => {
         </div>
         {cheapest && (
           <div className="mt-4 rounded-xl border border-lime-300/30 bg-lime-400/10 p-3 text-xs text-lime-100">
-            ⚡ Chain termurah saat ini: <span className="font-bold">{cheapest.chain.name}</span> ({fmtUsd(cheapest.usdCost)})
+            ⚡ Cheapest chain right now: <span className="font-bold">{cheapest.chain.name}</span> ({fmtUsd(cheapest.usdCost)})
           </div>
         )}
       </Card>

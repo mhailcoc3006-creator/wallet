@@ -58,9 +58,9 @@ export const TokenCreatorSheet = ({ onClose }) => {
         networkId,
       });
       setEstimate(result);
-      if (!result.canPayGas) setError(`Saldo ETH tidak cukup. Perkiraan gas ${result.estimatedCost || 'tidak tersedia'} ETH, saldo ${result.balance} ETH.`);
+      if (!result.canPayGas) setError(`Insufficient ETH balance. Estimated gas: ${result.estimatedCost || 'unavailable'} ETH; balance: ${result.balance} ETH.`);
     } catch (e) {
-      setError(e?.shortMessage || e?.message || 'Gagal menghitung gas.');
+      setError(e?.shortMessage || e?.message || 'Could not estimate gas.');
     } finally {
       setEstimating(false);
     }
@@ -81,9 +81,9 @@ export const TokenCreatorSheet = ({ onClose }) => {
       });
       setResult(deployment);
       setStep('success');
-      toast.success(`Token berhasil dibuat di ${network.name}.`);
+      toast.success(`Token created on ${network.name}.`);
     } catch (e) {
-      setError(e?.info?.error?.message || e?.shortMessage || e?.message || 'Deployment gagal.');
+      setError(e?.info?.error?.message || e?.shortMessage || e?.message || 'Deployment failed.');
       setStep('error');
     }
   };
@@ -93,9 +93,9 @@ export const TokenCreatorSheet = ({ onClose }) => {
       <Sheet onClose={onClose}>
         <div className="py-10 text-center">
           <Loader2 className="mx-auto h-12 w-12 animate-spin text-amber-400" />
-          <div className="mt-4 text-lg font-bold text-white">Membuat token...</div>
+          <div className="mt-4 text-lg font-bold text-white">Creating token...</div>
           <p className="mt-2 text-sm leading-relaxed text-slate-400">
-            Transaksi sedang ditandatangani lokal dan dikirim ke {network.name}.
+            The transaction is being signed locally and sent to {network.name}.
           </p>
         </div>
       </Sheet>
@@ -107,8 +107,8 @@ export const TokenCreatorSheet = ({ onClose }) => {
       <Sheet onClose={onClose}>
         <div className="py-3 text-center">
           <CheckCircle2 className="mx-auto h-14 w-14 text-emerald-400" />
-          <div className="mt-4 text-xl font-bold text-white">Token berhasil dibuat</div>
-          <div className="mt-2 text-sm text-slate-400">{name.trim()} ({normalizedSymbol}) di {result?.network?.name || network.name}</div>
+          <div className="mt-4 text-xl font-bold text-white">Token created successfully</div>
+          <div className="mt-2 text-sm text-slate-400">{name.trim()} ({normalizedSymbol}) on {result?.network?.name || network.name}</div>
           <div className="mt-5 rounded-xl border border-slate-800 bg-slate-900/60 p-3 text-left">
             <div className="text-[10px] uppercase tracking-widest text-slate-500">Contract address</div>
             <div className="mt-1 break-all font-mono text-xs text-white">{result?.address}</div>
@@ -128,11 +128,11 @@ export const TokenCreatorSheet = ({ onClose }) => {
               rel="noreferrer"
               className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-800 px-3 py-3 text-xs font-semibold text-white hover:bg-slate-700"
             >
-              Transaksi <ExternalLink className="h-3.5 w-3.5" />
+              Transaction <ExternalLink className="h-3.5 w-3.5" />
             </a>
           </div>
           <Button onClick={onClose} className="mt-5 h-12 w-full rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white">
-            Selesai
+            Done
           </Button>
         </div>
       </Sheet>
@@ -147,7 +147,7 @@ export const TokenCreatorSheet = ({ onClose }) => {
             <Coins className="h-5 w-5 text-amber-300" />
           </div>
           <div>
-          <div className="text-lg font-bold text-white">Buat Token ERC-20</div>
+          <div className="text-lg font-bold text-white">Create ERC-20 Token</div>
             <div className="text-xs text-slate-400">{network.name}</div>
           </div>
         </div>
@@ -156,12 +156,12 @@ export const TokenCreatorSheet = ({ onClose }) => {
 
       <div className={`mb-4 flex items-start gap-2 rounded-xl border p-3 text-[11px] leading-relaxed ${networkId === 'base' ? 'border-red-500/40 bg-red-500/10 text-red-100' : 'border-amber-500/30 bg-amber-500/10 text-amber-100'}`}>
         {networkId === 'base' ? <ShieldAlert className="mt-0.5 h-4 w-4 flex-shrink-0 text-red-300" /> : <FlaskConical className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-300" />}
-        <span>{networkId === 'base' ? 'BASE MAINNET: deployment memakai ETH nyata di Base dan tidak dapat dibatalkan. Pastikan nama, simbol, supply, dan wallet deployer sudah benar.' : 'Testnet gratis. Token tidak memiliki nilai nyata. Anda membutuhkan Sepolia ETH dari faucet untuk gas.'}</span>
+        <span>{networkId === 'base' ? 'BASE MAINNET: deployment uses real ETH on Base and cannot be undone. Make sure the name, symbol, supply, and deployer wallet are correct.' : 'Free testnet. This token has no real value. You need Sepolia ETH from a faucet for gas.'}</span>
       </div>
 
       {!active && (
         <div className="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-200">
-          Buat atau import wallet terlebih dahulu.
+          Create or import a wallet first.
         </div>
       )}
 
@@ -183,17 +183,17 @@ export const TokenCreatorSheet = ({ onClose }) => {
           </div>
         </div>
         <div>
-          <div className="mb-1.5 text-[10px] uppercase tracking-widest text-slate-500">Nama token</div>
-          <Input value={name} onChange={(e) => setName(e.target.value.slice(0, 32))} placeholder="Contoh: Cavendish Token" className="h-12 rounded-xl border-slate-700 bg-slate-900/70 text-sm text-white placeholder:text-slate-600" />
+          <div className="mb-1.5 text-[10px] uppercase tracking-widest text-slate-500">Token name</div>
+          <Input value={name} onChange={(e) => setName(e.target.value.slice(0, 32))} placeholder="For example: Cavendish Token" className="h-12 rounded-xl border-slate-700 bg-slate-900/70 text-sm text-white placeholder:text-slate-600" />
         </div>
         <div>
-          <div className="mb-1.5 text-[10px] uppercase tracking-widest text-slate-500">Simbol</div>
+          <div className="mb-1.5 text-[10px] uppercase tracking-widest text-slate-500">Symbol</div>
           <Input value={symbol} onChange={(e) => setSymbol(e.target.value)} placeholder="KVC" className="h-12 rounded-xl border-slate-700 bg-slate-900/70 text-sm uppercase text-white placeholder:text-slate-600" />
         </div>
         <div>
-          <div className="mb-1.5 text-[10px] uppercase tracking-widest text-slate-500">Jumlah supply awal</div>
+          <div className="mb-1.5 text-[10px] uppercase tracking-widest text-slate-500">Initial supply</div>
           <Input inputMode="numeric" value={supply} onChange={(e) => setSupply(e.target.value.replace(/[^\d]/g, ''))} placeholder="1000000" className="h-12 rounded-xl border-slate-700 bg-slate-900/70 font-mono text-sm text-white placeholder:text-slate-600" />
-          <div className="mt-1 text-[10px] text-slate-500">Decimals tetap 18. Semua supply dikirim ke wallet aktif.</div>
+          <div className="mt-1 text-[10px] text-slate-500">Decimals are fixed at 18. The full supply is sent to the active wallet.</div>
         </div>
       </div>
 
@@ -209,29 +209,29 @@ export const TokenCreatorSheet = ({ onClose }) => {
         <div className="mt-1 flex justify-between"><span>Deployer</span><span className="font-mono text-white">{active?.address ? `${active.address.slice(0, 8)}…${active.address.slice(-6)}` : '—'}</span></div>
         {estimate && (
           <>
-            <div className="mt-1 flex justify-between"><span>Perkiraan gas</span><span className="font-mono text-white">{estimate.estimatedCost || 'n/a'} ETH</span></div>
-            <div className="mt-1 flex justify-between"><span>Saldo ETH</span><span className={estimate.canPayGas ? 'font-mono text-emerald-300' : 'font-mono text-red-300'}>{estimate.balance} ETH</span></div>
+            <div className="mt-1 flex justify-between"><span>Estimated gas</span><span className="font-mono text-white">{estimate.estimatedCost || 'n/a'} ETH</span></div>
+            <div className="mt-1 flex justify-between"><span>ETH balance</span><span className={estimate.canPayGas ? 'font-mono text-emerald-300' : 'font-mono text-red-300'}>{estimate.balance} ETH</span></div>
           </>
         )}
       </div>
 
       {networkId === 'base' && (
         <div className="mt-4 rounded-xl border border-red-500/30 bg-red-500/5 p-3">
-          <div className="text-[10px] uppercase tracking-widest text-red-300">Konfirmasi transaksi nyata</div>
-          <div className="mt-1 text-[11px] leading-relaxed text-slate-400">Ketik persis <span className="font-mono font-bold text-red-200">DEPLOY BASE</span> untuk mengaktifkan deployment.</div>
+          <div className="text-[10px] uppercase tracking-widest text-red-300">Confirm real transaction</div>
+          <div className="mt-1 text-[11px] leading-relaxed text-slate-400">Type exactly <span className="font-mono font-bold text-red-200">DEPLOY BASE</span> to enable deployment.</div>
           <Input value={baseConfirm} onChange={(e) => setBaseConfirm(e.target.value)} placeholder="DEPLOY BASE" className="mt-2 h-11 rounded-xl border-red-500/30 bg-slate-950/70 font-mono text-xs text-white placeholder:text-slate-600" />
         </div>
       )}
 
       <Button onClick={checkGas} disabled={!valid || estimating} variant="outline" className="mt-5 h-12 w-full rounded-xl border-slate-700 bg-slate-900/60 text-slate-200 hover:bg-slate-800 disabled:opacity-40">
-        {estimating ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Menghitung gas...</> : <>Cek saldo & estimasi gas</>}
+        {estimating ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Estimating gas...</> : <>Check balance & estimate gas</>}
       </Button>
       <Button onClick={deploy} disabled={!valid || step === 'deploying' || (networkId === 'base' && baseConfirm !== 'DEPLOY BASE')} className={`h-13 w-full rounded-2xl py-3 font-semibold text-white shadow-lg disabled:opacity-40 ${networkId === 'base' ? 'bg-gradient-to-r from-red-600 to-orange-600 shadow-red-500/20 hover:from-red-500 hover:to-orange-500' : 'bg-gradient-to-r from-amber-500 to-orange-500 shadow-amber-500/20 hover:from-amber-400 hover:to-orange-400'}`}>
-        {networkId === 'base' ? 'Deploy Token ke Base Mainnet' : 'Deploy Token ke Sepolia'}
+        {networkId === 'base' ? 'Deploy Token to Base Mainnet' : 'Deploy Token to Sepolia'}
       </Button>
       {networkId === 'sepolia' && (
         <a href="https://sepoliafaucet.com/" target="_blank" rel="noreferrer" className="mt-3 block text-center text-[11px] text-cyan-400 hover:text-cyan-300">
-          Ambil Sepolia ETH gratis dari faucet ↗
+          Get free Sepolia ETH from a faucet ↗
         </a>
       )}
     </Sheet>

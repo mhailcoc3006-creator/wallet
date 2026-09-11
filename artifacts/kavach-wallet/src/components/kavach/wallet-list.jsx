@@ -61,18 +61,18 @@ export const WalletListSheet = ({ onClose, prices }) => {
   const deleteSelected = () => {
     const n = selectedIds.size;
     if (n === 0) return;
-    if (typeof window !== 'undefined' && !window.confirm(`Hapus ${n} wallet terpilih? Tindakan ini tidak bisa dibatalkan.`)) return;
+    if (typeof window !== 'undefined' && !window.confirm(`Delete ${n} selected wallet${n === 1 ? '' : 's'}? This cannot be undone.`)) return;
     selectedIds.forEach((id) => removeWallet(id));
-    toast.success(`${n} wallet dihapus.`);
+    toast.success(`${n} wallet${n === 1 ? '' : 's'} deleted.`);
     setSelectedIds(new Set());
     setSelectMode(false);
   };
   const deleteAll = () => {
     const n = wallets.length;
     if (n === 0) return;
-    if (typeof window !== 'undefined' && !window.confirm(`Hapus SEMUA ${n} wallet? Anda TIDAK bisa mengaksesnya lagi tanpa recovery phrase.`)) return;
+    if (typeof window !== 'undefined' && !window.confirm(`Delete ALL ${n} wallets? You will NOT be able to access them again without their recovery phrases.`)) return;
     removeAllWallets();
-    toast.success(`Semua ${n} wallet dihapus.`);
+    toast.success(`All ${n} wallets deleted.`);
     setSelectedIds(new Set());
     setSelectMode(false);
     onClose();
@@ -94,7 +94,7 @@ export const WalletListSheet = ({ onClose, prices }) => {
   const totalUsd = useMemo(() => wallets.reduce((s, w) => s + (w.portfolioUsd || 0), 0), [wallets]);
 
   const refreshAll = async () => {
-    if (!ethPrice) { toast.error('Harga ETH belum termuat, refresh Portfolio dulu.'); return; }
+    if (!ethPrice) { toast.error('ETH price has not loaded. Refresh Portfolio first.'); return; }
     setRefreshing(true);
     setProgress({ done: 0, total: wallets.length });
     const BATCH_SIZE = 8;
@@ -111,7 +111,7 @@ export const WalletListSheet = ({ onClose, prices }) => {
     }
     setRefreshing(false);
     setProgress(null);
-    toast.success(`Selesai refresh ${wallets.length} wallet.`);
+    toast.success(`Finished refreshing ${wallets.length} wallet${wallets.length === 1 ? '' : 's'}.`);
   };
 
   const handleRename = (id) => {
@@ -121,9 +121,9 @@ export const WalletListSheet = ({ onClose, prices }) => {
   };
 
   const handleDelete = (w) => {
-    if (typeof window !== 'undefined' && window.confirm(`Hapus wallet "${w.name}"? Anda tidak bisa mengaksesnya lagi tanpa recovery phrase.`)) {
+    if (typeof window !== 'undefined' && window.confirm(`Delete wallet "${w.name}"? You will not be able to access it again without its recovery phrase.`)) {
       removeWallet(w.id);
-      toast.success('Wallet dihapus.');
+      toast.success('Wallet deleted.');
     }
   };
 
@@ -131,8 +131,8 @@ export const WalletListSheet = ({ onClose, prices }) => {
     <Sheet onClose={onClose}>
       <div className="mb-4 flex items-center justify-between">
         <div>
-          <div className="text-lg font-bold text-white">Wallet Saya</div>
-          <div className="text-xs text-slate-400">{wallets.length} wallet • Total {fmtUsd(totalUsd)}</div>
+          <div className="text-lg font-bold text-white">My Wallets</div>
+          <div className="text-xs text-slate-400">{wallets.length} wallet{wallets.length === 1 ? '' : 's'} • Total {fmtUsd(totalUsd)}</div>
         </div>
         <button onClick={onClose} className="rounded-full p-1 text-slate-400 hover:text-white"><X className="h-5 w-5" /></button>
       </div>
@@ -143,30 +143,30 @@ export const WalletListSheet = ({ onClose, prices }) => {
           onClick={() => { setSelectMode(!selectMode); clearSel(); }}
            className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-medium transition ${selectMode ? 'border-lime-300/40 bg-lime-400/10 text-lime-200' : 'border-slate-700 bg-slate-900/60 text-slate-300 hover:bg-slate-900'}`}
         >
-          <CheckSquare className="h-3.5 w-3.5" /> {selectMode ? 'Batalkan Pilih' : 'Pilih Ganda'}
+          <CheckSquare className="h-3.5 w-3.5" /> {selectMode ? 'Cancel Selection' : 'Select Multiple'}
         </button>
         <button
           onClick={deleteAll}
           disabled={wallets.length === 0}
           className="flex items-center gap-1.5 rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs font-medium text-red-300 hover:bg-red-500/20 disabled:opacity-40"
         >
-          <Trash2 className="h-3.5 w-3.5" /> Hapus Semua
+          <Trash2 className="h-3.5 w-3.5" /> Delete All
         </button>
       </div>
 
       {/* Select mode action bar */}
       {selectMode && (
          <div className="mb-3 flex items-center justify-between rounded-xl border border-lime-300/30 bg-lime-400/5 px-3 py-2">
-           <div className="text-xs text-lime-100">{selectedIds.size} dipilih</div>
+           <div className="text-xs text-lime-100">{selectedIds.size} selected</div>
           <div className="flex gap-2">
-             <button onClick={() => selectAllVisible(filtered)} className="text-[11px] text-lime-300 hover:text-lime-200">Pilih semua</button>
+             <button onClick={() => selectAllVisible(filtered)} className="text-[11px] text-lime-300 hover:text-lime-200">Select all</button>
             {selectedIds.size > 0 && <button onClick={clearSel} className="text-[11px] text-slate-400 hover:text-white">Reset</button>}
             <button
               onClick={deleteSelected}
               disabled={selectedIds.size === 0}
               className="flex items-center gap-1 rounded-lg bg-red-500 px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-red-600 disabled:opacity-40"
             >
-              <Trash2 className="h-3 w-3" /> Hapus ({selectedIds.size})
+              <Trash2 className="h-3 w-3" /> Delete ({selectedIds.size})
             </button>
           </div>
         </div>
@@ -197,7 +197,7 @@ export const WalletListSheet = ({ onClose, prices }) => {
 
       <div className="mt-4 space-y-2 max-h-[60vh] overflow-y-auto pr-1">
         {filtered.length === 0 && (
-          <div className="py-6 text-center text-xs text-slate-500">Tidak ada wallet yang cocok.</div>
+          <div className="py-6 text-center text-xs text-slate-500">No matching wallets.</div>
         )}
         {filtered.map((w, i) => {
           const active = w.id === activeWalletId;
@@ -215,7 +215,7 @@ export const WalletListSheet = ({ onClose, prices }) => {
                       {selectedIds.has(w.id) && <Check className="h-3.5 w-3.5 text-white" />}
                     </button>
                   )}
-                  <button onClick={() => { if (selectMode) { toggleSel(w.id); return; } setActive(w.id); toast.success(`Beralih ke ${w.name}`); onClose(); }} className="flex flex-1 items-center gap-3 text-left">
+                  <button onClick={() => { if (selectMode) { toggleSel(w.id); return; } setActive(w.id); toast.success(`Switched to ${w.name}`); onClose(); }} className="flex flex-1 items-center gap-3 text-left">
                      <div className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full ${active ? 'bg-lime-400/15 text-lime-300' : isPS ? 'bg-lime-400/10 text-lime-200' : 'bg-slate-800 text-slate-400'}`}>
                       {active ? <Check className="h-4 w-4" /> : isPS ? <Sparkles className="h-4 w-4" /> : <Wallet className="h-4 w-4" />}
                     </div>

@@ -1,6 +1,6 @@
 'use client';
 
-const BRAND_LOGO_SRC = '/cavendish-angular-feather-logo-4k.jpg';
+const BRAND_LOGO_SRC = '/cavendish-feather-arrow-logo-4k.jpg';
 
 export const BrandMark = ({ size = 40 }) => (
   <div
@@ -12,8 +12,7 @@ export const BrandMark = ({ size = 40 }) => (
       alt="Cavendish logo"
       draggable="false"
       className="h-full w-full select-none object-cover"
-    >
-    </img>
+    />
     <div className="pointer-events-none absolute inset-0 rounded-2xl ring-1 ring-black/15" />
   </div>
 );

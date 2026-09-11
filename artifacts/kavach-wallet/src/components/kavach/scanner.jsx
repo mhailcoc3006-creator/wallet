@@ -16,7 +16,7 @@ export const QRScanner = ({ onScanned, onClose }) => {
         const mod = await import('html5-qrcode');
         const { Html5Qrcode } = mod;
         const cams = await Html5Qrcode.getCameras();
-        if (!cams || !cams.length) throw new Error('Kamera tidak ditemukan.');
+        if (!cams || !cams.length) throw new Error('No camera found.');
         if (!mounted) return;
         const scanner = new Html5Qrcode(containerId);
         scannerRef.current = scanner;
@@ -30,7 +30,7 @@ export const QRScanner = ({ onScanned, onClose }) => {
           () => {}
         );
       } catch (e) {
-        setError(e.message || 'Gagal membuka kamera. Izinkan akses kamera di browser Anda.');
+        setError(e.message || 'Could not open the camera. Allow camera access in your browser.');
       }
     };
     start();
@@ -62,7 +62,7 @@ export const QRScanner = ({ onScanned, onClose }) => {
       )}
 
       <div className="absolute inset-x-0 bottom-0 bg-black/60 p-4 text-center text-xs text-slate-300 backdrop-blur-sm">
-        Arahkan kamera ke QR code alamat crypto
+        Point your camera at a crypto address QR code
       </div>
     </div>
   );
