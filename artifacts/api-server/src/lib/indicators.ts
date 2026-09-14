@@ -172,6 +172,100 @@ export function BollingerBands(closes: number[], period = 20, mult = 2) {
   return { middle, upper, lower, width };
 }
 
+// VWAP — Volume Weighted Average Price (rolling, not session-reset)
+export function VWAP(highs: number[], lows: number[], closes: number[], volumes: number[], period = 30): (number | null)[] {
+  const n = closes.length;
+  const out: (number | null)[] = new Array(n).fill(null);
+  for (let i = period - 1; i < n; i++) {
+    let pv = 0, vv = 0;
+    for (let j = i - period + 1; j <= i; j++) {
+      const tp = (highs[j] + lows[j] + closes[j]) / 3;
+      pv += tp * volumes[j];
+      vv += volumes[j];
+    }
+    out[i] = vv > 0 ? pv / vv : null;
+  }
+  return out;
+}
+
+// OBV — On Balance Volume (cumulative)
+export function OBV(closes: number[], volumes: number[]): number[] {
+  const out: number[] = new Array(closes.length).fill(0);
+  if (closes.length === 0) return out;
+  out[0] = 0;
+  for (let i = 1; i < closes.length; i++) {
+    if (closes[i] > closes[i - 1]) out[i] = out[i - 1] + volumes[i];
+    else if (closes[i] < closes[i - 1]) out[i] = out[i - 1] - volumes[i];
+    else out[i] = out[i - 1];
+  }
+  return out;
+}
+
+// CCI — Commodity Channel Index
+export function CCI(highs: number[], lows: number[], closes: number[], period = 20): (number | null)[] {
+  const n = closes.length;
+  const out: (number | null)[] = new Array(n).fill(null);
+  const tp: number[] = new Array(n).fill(0);
+  for (let i = 0; i < n; i++) tp[i] = (highs[i] + lows[i] + closes[i]) / 3;
+  for (let i = period - 1; i < n; i++) {
+    const window = tp.slice(i - period + 1, i + 1);
+    const mean = window.reduce((a, b) => a + b, 0) / period;
+    let devSum = 0;
+    for (const v of window) devSum += Math.abs(v - mean);
+    const meanDev = devSum / period;
+    out[i] = meanDev === 0 ? 0 : (tp[i] - mean) / (0.015 * meanDev);
+  }
+  return out;
+}
+
+// Williams %R
+export function WilliamsR(highs: number[], lows: number[], closes: number[], period = 14): (number | null)[] {
+  const n = closes.length;
+  const out: (number | null)[] = new Array(n).fill(null);
+  for (let i = period - 1; i < n; i++) {
+    const hh = Math.max(...highs.slice(i - period + 1, i + 1));
+    const ll = Math.min(...lows.slice(i - period + 1, i + 1));
+    const range = hh - ll;
+    out[i] = range === 0 ? -50 : ((hh - closes[i]) / range) * -100;
+  }
+  return out;
+}
+
+// Ichimoku Cloud components
+export function IchimokuCloud(highs: number[], lows: number[], closes: number[], tenkanP = 9, kijunP = 26, senkouBP = 52) {
+  const n = closes.length;
+  const tenkan: (number | null)[] = new Array(n).fill(null);
+  const kijun: (number | null)[] = new Array(n).fill(null);
+  const senkouA: (number | null)[] = new Array(n).fill(null);
+  const senkouB: (number | null)[] = new Array(n).fill(null);
+  const chikou: (number | null)[] = new Array(n).fill(null);
+
+  const midpoint = (h: number[], l: number[], start: number, period: number) => {
+    const hh = Math.max(...h.slice(start, start + period));
+    const ll = Math.min(...l.slice(start, start + period));
+    return (hh + ll) / 2;
+  };
+
+  for (let i = tenkanP - 1; i < n; i++) {
+    tenkan[i] = midpoint(highs, lows, i - tenkanP + 1, tenkanP);
+  }
+  for (let i = kijunP - 1; i < n; i++) {
+    kijun[i] = midpoint(highs, lows, i - kijunP + 1, kijunP);
+  }
+  for (let i = 0; i < n; i++) {
+    if (tenkan[i] != null && kijun[i] != null) {
+      senkouA[i] = ((tenkan[i] as number) + (kijun[i] as number)) / 2;
+    }
+  }
+  for (let i = senkouBP - 1; i < n; i++) {
+    senkouB[i] = midpoint(highs, lows, i - senkouBP + 1, senkouBP);
+  }
+  for (let i = 0; i < n - 26; i++) {
+    chikou[i] = closes[i + 26];
+  }
+  return { tenkan, kijun, senkouA, senkouB, chikou };
+}
+
 // Pivot-based swing detection (5-bar fractal by default)
 export function findSwings(highs: number[], lows: number[], window = 3) {
   const swingHighs: { index: number; price: number }[] = [];

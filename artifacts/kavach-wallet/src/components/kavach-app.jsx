@@ -16,6 +16,7 @@ import { WatchlistTab } from '@/components/kavach/watchlist';
 import { GasTab } from '@/components/kavach/gas';
 import { PadaSankaraTab } from '@/components/kavach/padasankara';
 import { SignalTab } from '@/components/kavach/signal';
+import { DashboardTab } from '@/components/kavach/dashboard';
 import { SettingsSheet } from '@/components/kavach/settings';
 import { WalletListSheet } from '@/components/kavach/wallet-list';
 import { ReceiveSheet, Sheet } from '@/components/kavach/receive';
@@ -294,7 +295,7 @@ const KavachApp = () => {
             <AnimatePresence mode="wait">
               <motion.div key={tab} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.15 }}>
                 {tab === 'portfolio' && (
-                  <PortfolioTab
+                  <DashboardTab
                     activeWallet={activeWallet}
                     walletCount={store.wallets.length}
                     addresses={addresses}
@@ -308,6 +309,7 @@ const KavachApp = () => {
                     onReceive={() => setShowReceive(true)}
                     onOpenPhrase={() => setShowPhrase(true)}
                     onOpenWalletList={() => setShowWalletList(true)}
+                    onOpenSignal={() => setTab('signal')}
                   />
                 )}
                 {tab === 'swap' && (

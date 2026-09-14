@@ -4,15 +4,18 @@
 
 import {
   EMA, RSI, MACD, StochRSI, ATR, ADX, BollingerBands, findSwings,
+  VWAP, OBV, CCI, WilliamsR, IchimokuCloud,
 } from './indicators';
 
 // Weights for overall confidence (total 100)
+// Added confluence (0.15) and rebalanced existing weights
 const WEIGHTS = {
-  trend: 0.30,
-  momentum: 0.25,
-  volume: 0.15,
-  structure: 0.15,
-  futures: 0.15,
+  trend: 0.20,
+  momentum: 0.18,
+  volume: 0.12,
+  structure: 0.13,
+  futures: 0.12,
+  confluence: 0.25,
 };
 
 function clamp(v: number, mn: number, mx: number) { return Math.max(mn, Math.min(mx, v)); }
@@ -63,6 +66,12 @@ export function generateSignal(data: GenerateSignalInput) {
   const atrArr = ATR(highs, lows, closes, 14);
   const adxRes = ADX(highs, lows, closes, 14);
   const bb = BollingerBands(closes, 20, 2);
+  // Enhanced indicators for confluence
+  const vwapArr = VWAP(highs, lows, closes, volumes, 30);
+  const obvArr = OBV(closes, volumes);
+  const cciArr = CCI(highs, lows, closes, 20);
+  const williamsRArr = WilliamsR(highs, lows, closes, 14);
+  const ichimoku = IchimokuCloud(highs, lows, closes);
 
   const price = closes[closes.length - 1];
   const ema20 = last(ema20Arr) as number;
@@ -80,6 +89,28 @@ export function generateSignal(data: GenerateSignalInput) {
   const minusDI = last(adxRes.minusDI);
   const atr = last(atrArr) as number;
   const bbWidth = last(bb.width);
+  const bbUpper = last(bb.upper);
+  const bbLower = last(bb.lower);
+  // Enhanced indicator values
+  const vwap = last(vwapArr);
+  const obv = obvArr[obvArr.length - 1];
+  const prevObv = obvArr[obvArr.length - 2] || obv;
+  const obvTrend = obv > prevObv ? 'rising' : obv < prevObv ? 'falling' : 'flat';
+  const cci = last(cciArr);
+  const prevCci = nthLast(cciArr, 1);
+  const williamsR = last(williamsRArr);
+  const tenkan = last(ichimoku.tenkan);
+  const kijun = last(ichimoku.kijun);
+  const senkouA = last(ichimoku.senkouA);
+  const senkouB = last(ichimoku.senkouB);
+  // Ichimoku cloud position
+  const cloudTop = senkouA != null && senkouB != null ? Math.max(senkouA, senkouB) : null;
+  const cloudBottom = senkouA != null && senkouB != null ? Math.min(senkouA, senkouB) : null;
+  const aboveCloud = cloudTop != null && price > cloudTop;
+  const belowCloud = cloudBottom != null && price < cloudBottom;
+  const inCloud = !aboveCloud && !belowCloud && cloudTop != null;
+  const cloudBullish = senkouA != null && senkouB != null && senkouA > senkouB;
+  const tkCross = tenkan != null && kijun != null ? (tenkan > kijun ? 'bullish' : tenkan < kijun ? 'bearish' : 'neutral') : 'neutral';
 
   // ─── TREND SCORE (0-100) ───
   let trendScore = 50;
@@ -214,13 +245,70 @@ export function generateSignal(data: GenerateSignalInput) {
   else if (lsr < 0.75) futuresScore += 5;
   futuresScore = clamp(futuresScore, 0, 100);
 
+  // ─── CONFLUENCE SCORE (0-100) ───
+  // Count how many independent indicators agree on bullish/bearish direction
+  let bullVotes = 0;
+  let bearVotes = 0;
+  let totalVotes = 0;
+
+  // VWAP: price above VWAP = bullish
+  if (vwap != null) {
+    totalVotes++;
+    if (price > vwap) bullVotes++; else bearVotes++;
+  }
+  // OBV trend: rising = bullish
+  totalVotes++;
+  if (obvTrend === 'rising') bullVotes++; else if (obvTrend === 'falling') bearVotes++;
+  // CCI: > 100 = strong bullish, < -100 = strong bearish
+  if (cci != null) {
+    totalVotes++;
+    if (cci > 100) bullVotes++; else if (cci < -100) bearVotes++;
+  }
+  // Williams %R: > -20 = overbought (bearish signal), < -80 = oversold (bullish signal)
+  if (williamsR != null) {
+    totalVotes++;
+    if (williamsR < -80) bullVotes++; else if (williamsR > -20) bearVotes++;
+  }
+  // Ichimoku: above cloud + bullish cloud = strong bullish
+  if (tenkan != null && kijun != null) {
+    totalVotes++;
+    if (aboveCloud && cloudBullish) bullVotes += 2;
+    else if (aboveCloud) bullVotes++;
+    else if (belowCloud && !cloudBullish) bearVotes += 2;
+    else if (belowCloud) bearVotes++;
+    // TK cross
+    totalVotes++;
+    if (tkCross === 'bullish') bullVotes++; else if (tkCross === 'bearish') bearVotes++;
+  }
+  // Bollinger Bands: price near lower band = oversold (bullish), near upper = overbought (bearish)
+  if (bbUpper != null && bbLower != null) {
+    totalVotes++;
+    const bbPos = (price - (bbLower as number)) / ((bbUpper as number) - (bbLower as number));
+    if (bbPos < 0.2) bullVotes++; else if (bbPos > 0.8) bearVotes++;
+  }
+  // RSI direction alignment
+  if (rsi != null && prevRsi != null) {
+    totalVotes++;
+    if (rsi > prevRsi && rsi > 50) bullVotes++; else if (rsi < prevRsi && rsi < 50) bearVotes++;
+  }
+  // MACD histogram direction
+  if (macdHist != null && prevMacdHist != null) {
+    totalVotes++;
+    if (macdHist > 0 && macdHist > prevMacdHist) bullVotes++; else if (macdHist < 0 && macdHist < prevMacdHist) bearVotes++;
+  }
+
+  const netVotes = bullVotes - bearVotes;
+  let confluenceScore = 50 + (totalVotes > 0 ? (netVotes / totalVotes) * 50 : 0);
+  confluenceScore = clamp(confluenceScore, 0, 100);
+
   // ─── OVERALL CONFIDENCE ───
   const overall =
     trendScore * WEIGHTS.trend +
     momentumScore * WEIGHTS.momentum +
     volumeScore * WEIGHTS.volume +
     structureScore * WEIGHTS.structure +
-    futuresScore * WEIGHTS.futures;
+    futuresScore * WEIGHTS.futures +
+    confluenceScore * WEIGHTS.confluence;
 
   // ─── SIGNAL CLASSIFICATION ───
   let signal: string, side: string;
@@ -241,12 +329,20 @@ export function generateSignal(data: GenerateSignalInput) {
   if (oiChange < -12) invalidateBuy('Open Interest turun tajam');
   if (volumeScore < 25) invalidateBuy('Volume terlalu rendah');
   if (structureScore < 25) invalidateBuy('Market structure bearish');
+  if (confluenceScore < 30) invalidateBuy('Confluence terlalu rendah');
+  if (vwap != null && price < vwap * 0.97) invalidateBuy('Harga jauh di bawah VWAP');
+  if (cci != null && cci < -200) invalidateBuy('CCI ekstrem bearish');
+  if (belowCloud && !cloudBullish) invalidateBuy('Harga di bawah Ichimoku cloud bearish');
   // No SELL if:
   if (trendScore > 75) invalidateSell('Trend bullish kuat');
   if (rsi != null && rsi < 18) invalidateSell('RSI oversold ekstrem');
   if (fundingPct < -0.18) invalidateSell('Funding rate terlalu rendah (shorts kepadatan)');
   if (oiChange > 12 && futuresScore > 60) invalidateSell('OI naik dengan bias bullish');
   if (structureScore > 75) invalidateSell('Market structure bullish');
+  if (confluenceScore > 70) invalidateSell('Confluence bullish tinggi');
+  if (vwap != null && price > vwap * 1.03) invalidateSell('Harga jauh di atas VWAP');
+  if (cci != null && cci > 200) invalidateSell('CCI ekstrem bullish');
+  if (aboveCloud && cloudBullish) invalidateSell('Harga di atas Ichimoku cloud bullish');
 
   // ─── POSITION MANAGEMENT ───
   const atrValue = atr || price * 0.01;
@@ -300,15 +396,17 @@ export function generateSignal(data: GenerateSignalInput) {
   // ─── GRADE ───
   let grade: string;
   if (side === 'none') grade = 'C';
-  else if (overall >= 85 && (rr ?? 0) >= 2.5 && adx > 25 && volumeScore > 55) grade = 'A+';
-  else if (overall >= 75 && (rr ?? 0) >= 2 && adx > 20) grade = 'A';
-  else if (overall >= 65 && (rr ?? 0) >= 1.5) grade = 'B+';
+  else if (overall >= 85 && (rr ?? 0) >= 2.5 && adx > 25 && volumeScore > 55 && confluenceScore > 70) grade = 'A+';
+  else if (overall >= 75 && (rr ?? 0) >= 2 && adx > 20 && confluenceScore > 55) grade = 'A';
+  else if (overall >= 65 && (rr ?? 0) >= 1.5 && confluenceScore > 45) grade = 'B+';
   else if (overall >= 55) grade = 'B';
   else grade = 'C';
 
   // ─── PROBABILITY ───
-  // Simple mapping: 50 confidence → 50% prob; scale factor 0.85
-  const probability = Math.round(clamp(50 + (overall - 50) * 0.85, 5, 95));
+  // Weighted by confluence — higher confluence = higher probability
+  const probBase = 50 + (overall - 50) * 0.80;
+  const probConfluenceBoost = (confluenceScore - 50) * 0.10;
+  const probability = Math.round(clamp(probBase + probConfluenceBoost, 5, 95));
 
   // ─── EXPLANATION ───
   const explanation: string[] = [];
@@ -354,6 +452,25 @@ export function generateSignal(data: GenerateSignalInput) {
     explanation.push(`Open Interest ${dir} ${Math.abs(oiChange).toFixed(1)}% — ${oiChange > 0 ? 'likuiditas masuk' : 'posisi ditutup'}.`);
   }
   if (lsr > 2 || lsr < 0.5) explanation.push(`Long/Short ratio ${lsr.toFixed(2)} — crowd ${lsr > 1 ? 'long' : 'short'}, waspada squeeze.`);
+  // Confluence notes
+  if (vwap != null) {
+    if (price > vwap) explanation.push(`Harga di atas VWAP ${vwap.toFixed(2)} — bias institusional bullish.`);
+    else explanation.push(`Harga di bawah VWAP ${vwap.toFixed(2)} — bias institusional bearish.`);
+  }
+  if (obvTrend !== 'flat') explanation.push(`OBV ${obvTrend === 'rising' ? 'naik' : 'turun'} — akumulasi ${obvTrend === 'rising' ? 'beli' : 'jual'} terdeteksi.`);
+  if (cci != null) {
+    if (cci > 100) explanation.push(`CCI ${cci.toFixed(0)} — momentum bullish kuat.`);
+    else if (cci < -100) explanation.push(`CCI ${cci.toFixed(0)} — momentum bearish kuat.`);
+  }
+  if (williamsR != null) {
+    if (williamsR < -80) explanation.push(`Williams %R ${williamsR.toFixed(0)} — oversold, potensi bounce.`);
+    else if (williamsR > -20) explanation.push(`Williams %R ${williamsR.toFixed(0)} — overbought, waspada koreksi.`);
+  }
+  if (aboveCloud) explanation.push(`Harga di atas Ichimoku cloud ${cloudBullish ? 'bullish' : 'bearish'} — tren ${cloudBullish ? 'naik' : 'turun'} kuat.`);
+  else if (belowCloud) explanation.push(`Harga di bawah Ichimoku cloud ${cloudBullish ? 'bullish' : 'bearish'} — tekanan ${cloudBullish ? 'naik' : 'turun'}.`);
+  if (tkCross === 'bullish') explanation.push('Tenkan-sen melintasi di atas Kijun-sen — sinyal beli Ichimoku.');
+  else if (tkCross === 'bearish') explanation.push('Tenkan-sen melintasi di bawah Kijun-sen — sinyal jual Ichimoku.');
+  explanation.push(`Confluence: ${bullVotes} bull / ${bearVotes} bear dari ${totalVotes} indikator — skor ${Math.round(confluenceScore)}/100.`);
   // Validation notes
   if (validationReasons.length) {
     explanation.push(`⚠️ Sinyal di-invalidasi: ${validationReasons.join(', ')}. Menunggu konfirmasi.`);
@@ -392,6 +509,7 @@ export function generateSignal(data: GenerateSignalInput) {
       volume: Math.round(volumeScore),
       structure: Math.round(structureScore),
       futures: Math.round(futuresScore),
+      confluence: Math.round(confluenceScore),
       overall: Math.round(overall),
     },
     analysis: {
@@ -433,6 +551,27 @@ export function generateSignal(data: GenerateSignalInput) {
         atr: round(atrValue, 4),
         atr_pct: round(volPct, 2),
         bb_width: bbWidth != null ? round(bbWidth, 2) : null,
+      },
+      confluence: {
+        score: Math.round(confluenceScore),
+        bull_votes: bullVotes,
+        bear_votes: bearVotes,
+        total_votes: totalVotes,
+        vwap: vwap != null ? round(vwap, 4) : null,
+        vwap_signal: vwap != null ? (price > vwap ? 'bullish' : 'bearish') : 'neutral',
+        obv: obv,
+        obv_trend: obvTrend,
+        cci: cci != null ? round(cci, 2) : null,
+        williams_r: williamsR != null ? round(williamsR, 2) : null,
+        ichimoku: {
+          tenkan: tenkan != null ? round(tenkan, 4) : null,
+          kijun: kijun != null ? round(kijun, 4) : null,
+          senkou_a: senkouA != null ? round(senkouA, 4) : null,
+          senkou_b: senkouB != null ? round(senkouB, 4) : null,
+          position: aboveCloud ? 'above_cloud' : belowCloud ? 'below_cloud' : inCloud ? 'in_cloud' : 'unknown',
+          cloud_color: cloudBullish ? 'bullish' : 'bearish',
+          tk_cross: tkCross,
+        },
       },
     },
     explanation,

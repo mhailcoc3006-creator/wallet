@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Sheet } from './receive';
+import { AutoTradeTab } from './autotrade';
 
 const INTERVALS = ['15m', '1h', '4h', '1d'];
 
@@ -29,7 +30,7 @@ const RISK_COLOR = { 'Low': 'text-emerald-300', 'Medium': 'text-amber-300', 'Hig
 const fmtPrice = (p) => (p == null ? '\u2014' : p >= 1000 ? p.toLocaleString('en-US', { maximumFractionDigits: 2 }) : p >= 1 ? p.toFixed(4) : p.toFixed(6));
 
 export const SignalTab = () => {
-  const [mode, setMode] = useState('single'); // 'single' | 'scanner'
+  const [mode, setMode] = useState('single'); // 'single' | 'scanner' | 'autotrade'
   const [symbol, setSymbol] = useState('BTCUSDT');
   const [interval, setIntervalTF] = useState('1h');
   const [autoRefresh, setAutoRefresh] = useState(true);
@@ -119,9 +120,12 @@ export const SignalTab = () => {
           <button onClick={() => setMode('scanner')} className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-medium transition ${mode === 'scanner' ? 'bg-slate-800 text-white' : 'text-slate-400 hover:text-white'}`}>
             <LayoutList className="h-3.5 w-3.5" /> Scanner
           </button>
+          <button onClick={() => setMode('autotrade')} className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-medium transition ${mode === 'autotrade' ? 'bg-red-900/60 text-red-300' : 'text-slate-400 hover:text-white'}`}>
+            <Zap className="h-3.5 w-3.5" /> Auto-Trade
+          </button>
         </div>
 
-        {/* Symbol & Interval (only in single mode) or interval only in scanner */}
+        {/* Symbol & Interval (only in single mode) or interval only in scanner/autotrade */}
         <div className="mt-3 flex gap-2">
           {mode === 'single' && (
             <button onClick={() => setPickSym(true)} className="flex flex-1 items-center justify-between rounded-xl border border-slate-700 bg-slate-950/60 px-3 py-2 text-left">
@@ -141,6 +145,7 @@ export const SignalTab = () => {
               ))}
             </div>
           )}
+          {mode === 'autotrade' && <div className="flex-1" />}
           <div className="flex rounded-xl border border-slate-700 bg-slate-950/60 p-1">
             {INTERVALS.map((tf) => (
               <button key={tf} onClick={() => setIntervalTF(tf)} className={`rounded-lg px-2.5 py-1.5 text-xs font-medium transition ${interval === tf ? 'bg-slate-800 text-white' : 'text-slate-400 hover:text-white'}`}>
@@ -166,7 +171,9 @@ export const SignalTab = () => {
         </Card>
       )}
 
-      {mode === 'scanner' ? (
+      {mode === 'autotrade' ? (
+        <AutoTradeTab interval={interval} />
+      ) : mode === 'scanner' ? (
         <ScannerView
           data={scanData}
           loading={scanLoading}
@@ -246,11 +253,12 @@ const SingleView = ({ data, symbol, interval, sty, SignalIcon }) => (
         <div className="text-xs font-semibold uppercase tracking-widest text-slate-400">Score Breakdown</div>
         <div className="text-[10px] text-slate-500">Weighted Overall {data.scores.overall}/100</div>
       </div>
-      <ScoreBar label="Trend" score={data.scores.trend} weight={30} />
-      <ScoreBar label="Momentum" score={data.scores.momentum} weight={25} />
-      <ScoreBar label="Volume" score={data.scores.volume} weight={15} />
-      <ScoreBar label="Structure" score={data.scores.structure} weight={15} />
-      <ScoreBar label="Futures" score={data.scores.futures} weight={15} />
+      <ScoreBar label="Trend" score={data.scores.trend} weight={20} />
+      <ScoreBar label="Momentum" score={data.scores.momentum} weight={18} />
+      <ScoreBar label="Volume" score={data.scores.volume} weight={12} />
+      <ScoreBar label="Structure" score={data.scores.structure} weight={13} />
+      <ScoreBar label="Futures" score={data.scores.futures} weight={12} />
+      {data.scores.confluence != null && <ScoreBar label="Confluence" score={data.scores.confluence} weight={25} />}
     </Card>
 
     <Card className="border-slate-800 bg-slate-900/60 p-4 space-y-3">
@@ -267,6 +275,17 @@ const SingleView = ({ data, symbol, interval, sty, SignalIcon }) => (
       <AnalysisRow k="L/S Ratio" v={data.analysis.futures.long_short_ratio} />
       <AnalysisRow k="ATR" v={`${fmtPrice(data.analysis.volatility.atr)} (${data.analysis.volatility.atr_pct}%)`} />
       <AnalysisRow k="BB Width" v={`${data.analysis.volatility.bb_width ?? '\u2014'}%`} />
+      {data.analysis.confluence && (
+        <>
+          <div className="mt-2 mb-1 text-[10px] font-bold uppercase tracking-widest text-cyan-400/70">Confluence Indicators</div>
+          <AnalysisRow k="VWAP" v={data.analysis.confluence.vwap != null ? `$${fmtPrice(data.analysis.confluence.vwap)}` : '\u2014'} extra={data.analysis.confluence.vwap_signal} />
+          <AnalysisRow k="OBV Trend" v={data.analysis.confluence.obv_trend} />
+          <AnalysisRow k="CCI (20)" v={data.analysis.confluence.cci} />
+          <AnalysisRow k="Williams %R" v={data.analysis.confluence.williams_r} />
+          <AnalysisRow k="Ichimoku" v={data.analysis.confluence.ichimoku?.position} extra={data.analysis.confluence.ichimoku?.tk_cross} />
+          <AnalysisRow k="Confluence" v={`${data.analysis.confluence.score}/100`} extra={`${data.analysis.confluence.bull_votes}B / ${data.analysis.confluence.bear_votes}S`} />
+        </>
+      )}
     </Card>
 
     <Card className="border-slate-800 bg-slate-900/60 p-4">
