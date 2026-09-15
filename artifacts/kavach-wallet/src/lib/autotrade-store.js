@@ -1,15 +1,19 @@
 'use client';
 
-// Auto-Trade Store — paper trading bot that uses real signal data.
-// Monitors the scanner for high-grade signals and simulates trades.
+// Auto-Trade Store — REAL trading via OKX API.
+// Places real orders on OKX perpetual futures using user-provided API credentials.
+// Credentials are stored in localStorage and sent to the backend per-request.
 
 import { create } from 'zustand';
+
+const STORAGE_KEY = 'kavach_okx_creds';
 
 const MAYHEM_CONFIG = {
   minGrade: 'B+',
   maxPositions: 10,
-  riskPerTradePct: 5,      // % of simulated equity per trade
-  takeProfitPcts: [1.5, 3, 4.5],  // ATR multiples match signal TP
+  riskPerTradePct: 5,
+  leverage: 20,
+  takeProfitPcts: [1.5, 3, 4.5],
   stopLossMultiplier: 1.5,
   trailingStop: true,
   trailingATR: 1.2,
@@ -22,6 +26,7 @@ const NORMAL_CONFIG = {
   minGrade: 'A',
   maxPositions: 3,
   riskPerTradePct: 2,
+  leverage: 10,
   takeProfitPcts: [1.5, 3, 4.5],
   stopLossMultiplier: 1.5,
   trailingStop: true,
@@ -33,35 +38,154 @@ const NORMAL_CONFIG = {
 
 const GRADE_ORDER = { 'A+': 4, 'A': 3, 'B+': 2, 'B': 1, 'C': 0 };
 
+function loadCreds() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch { return null; }
+}
+
+function saveCreds(creds) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(creds)); } catch {}
+}
+
+function clearCreds() {
+  try { localStorage.removeItem(STORAGE_KEY); } catch {}
+}
+
+// Build headers for trading API requests
+function tradeHeaders(creds) {
+  return {
+    'x-okx-key': creds.apiKey,
+    'x-okx-secret': creds.secretKey,
+    'x-okx-pass': creds.passphrase,
+    'x-okx-demo': creds.demo ? '1' : '0',
+    'Content-Type': 'application/json',
+  };
+}
+
 export const useAutoTradeStore = create((set, get) => ({
+  // Credentials
+  creds: loadCreds(),
+  connected: false,
+  connecting: false,
+  connectError: '',
+
+  // Bot state
   running: false,
   config: { ...NORMAL_CONFIG },
-  equity: 10000,        // simulated starting equity in USD
-  startingEquity: 10000,
-  positions: [],       // { id, symbol, side, entry, currentPrice, size, stopLoss, takeProfits, tpHit, trailingStop, atr, pnl, pnlPct, signal, grade, confidence, interval, timestamp }
-  history: [],          // { id, symbol, side, entry, exit, size, pnl, pnlPct, reason, grade, timestamp, duration }
+  equity: 0,
+  startingEquity: 0,
+  availableBalance: 0,
+  positions: [],     // real positions from OKX
+  history: [],        // trade history (from closed positions)
   lastScanAt: null,
   lastScanCount: 0,
+  scanError: '',
+
+  // ── Credential management ──
+
+  setCredentials: (creds) => {
+    saveCreds(creds);
+    set({ creds });
+  },
+
+  clearCredentials: () => {
+    clearCreds();
+    set({ creds: null, connected: false, running: false, positions: [], equity: 0 });
+  },
+
+  connect: async () => {
+    const { creds } = get();
+    if (!creds) { set({ connectError: 'No credentials set' }); return false; }
+    set({ connecting: true, connectError: '' });
+    try {
+      const res = await fetch('/api/trade/connect', {
+        method: 'POST',
+        headers: tradeHeaders(creds),
+      });
+      const j = await res.json();
+      if (!res.ok || j.error) throw new Error(j.error || 'Connection failed');
+      set({
+        connected: true,
+        connecting: false,
+        equity: j.balance.totalEq,
+        startingEquity: j.balance.totalEq,
+        availableBalance: j.balance.available,
+      });
+      return true;
+    } catch (e) {
+      set({ connecting: false, connectError: e.message, connected: false });
+      return false;
+    }
+  },
+
+  // ── Bot controls ──
 
   start: () => set({ running: true }),
   stop: () => set({ running: false }),
+
   setMode: (mode) => set({
     config: mode === 'mayhem' ? { ...MAYHEM_CONFIG } : { ...NORMAL_CONFIG },
   }),
+
   updateConfig: (patch) => set({ config: { ...get().config, ...patch } }),
+
   reset: () => set({
     positions: [],
     history: [],
-    equity: 10000,
-    startingEquity: 10000,
     lastScanAt: null,
     lastScanCount: 0,
+    scanError: '',
   }),
 
-  // Called when scanner results arrive — checks for new entries
-  processSignals: (results, interval) => {
+  // ── Fetch real balance & positions from OKX ──
+
+  refreshAccount: async () => {
+    const { creds } = get();
+    if (!creds) return;
+    try {
+      const [balRes, posRes] = await Promise.all([
+        fetch('/api/trade/balance', { headers: tradeHeaders(creds) }),
+        fetch('/api/trade/positions', { headers: tradeHeaders(creds) }),
+      ]);
+      const bal = await balRes.json();
+      const pos = await posRes.json();
+      if (bal.error) throw new Error(bal.error);
+      if (pos.error) throw new Error(pos.error);
+
+      const positions = (pos.positions || []).map((p) => ({
+        id: p.posId,
+        instId: p.instId,
+        symbol: p.instId.replace('-USDT-SWAP', '') + 'USDT',
+        side: p.posSide,
+        entry: p.avgPx,
+        currentPrice: p.markPx,
+        size: p.pos,
+        leverage: p.lever,
+        margin: p.margin,
+        pnl: p.upl,
+        pnlPct: p.uplRatio * 100,
+        liqPrice: p.liqPx,
+        notionalUsd: p.notionalUsd,
+      }));
+
+      set({
+        equity: bal.totalEq,
+        availableBalance: bal.available,
+        positions,
+      });
+    } catch (e) {
+      set({ scanError: e.message });
+    }
+  },
+
+  // ── Process signals → place real orders ──
+
+  processSignals: async (results, interval) => {
     const state = get();
-    if (!state.running) return;
+    if (!state.running || !state.creds) return;
 
     const cfg = state.config;
     const openSymbols = new Set(state.positions.map((p) => p.symbol));
@@ -78,151 +202,132 @@ export const useAutoTradeStore = create((set, get) => ({
 
     if (candidates.length === 0) return;
 
-    const newPositions = candidates.map((r) => {
-      const tradeValue = (state.equity * cfg.riskPerTradePct) / 100;
-      const size = tradeValue / r.entry;
-      const atr = r.entry * 0.01; // estimate ATR if not provided
-      const stopLoss = r.side === 'long'
-        ? r.entry - atr * cfg.stopLossMultiplier
-        : r.entry + atr * cfg.stopLossMultiplier;
-      const takeProfits = cfg.takeProfitPcts.map((mult) =>
-        r.side === 'long' ? r.entry + atr * mult : r.entry - atr * mult
-      );
-      return {
-        id: crypto.randomUUID(),
-        symbol: r.symbol,
-        side: r.side,
-        entry: r.entry,
-        currentPrice: r.entry,
-        size,
-        stopLoss,
-        takeProfits,
-        tpHit: 0,
-        trailingStop: cfg.trailingStop ? stopLoss : null,
-        trailingATR: cfg.trailingATR,
-        atr,
-        pnl: 0,
-        pnlPct: 0,
-        signal: r.signal,
-        grade: r.grade,
-        confidence: r.confidence,
-        interval,
-        timestamp: Date.now(),
-      };
-    });
+    set({ lastScanAt: Date.now(), lastScanCount: results.length });
 
-    set({
-      positions: [...state.positions, ...newPositions],
-      lastScanAt: Date.now(),
-      lastScanCount: results.length,
-    });
+    // Place real orders for each candidate
+    for (const r of candidates) {
+      try {
+        const tradeUsdt = (state.availableBalance || state.equity) * (cfg.riskPerTradePct / 100);
+        if (tradeUsdt < 5) continue; // skip if too small
+
+        const res = await fetch('/api/trade/open', {
+          method: 'POST',
+          headers: tradeHeaders(state.creds),
+          body: JSON.stringify({
+            symbol: r.symbol,
+            side: r.side, // 'long' or 'short'
+            usdtAmount: tradeUsdt,
+            leverage: r.leverage || cfg.leverage,
+            slPrice: r.stop_loss,
+            tpPrice: r.tp1,
+          }),
+        });
+        const j = await res.json();
+        if (!res.ok || j.error) {
+          console.error(`Order failed for ${r.symbol}:`, j.error);
+          continue;
+        }
+        // Add to history
+        set((s) => ({
+          history: [{
+            id: crypto.randomUUID(),
+            symbol: r.symbol,
+            side: r.side,
+            entry: j.entryPrice,
+            size: j.contracts,
+            grade: r.grade,
+            reason: 'Opened',
+            pnl: 0,
+            pnlPct: 0,
+            timestamp: Date.now(),
+            orderId: j.order?.ordId,
+          }, ...s.history].slice(0, 200),
+        }));
+      } catch (e) {
+        console.error(`Order error for ${r.symbol}:`, e.message);
+      }
+    }
+
+    // Refresh positions after opening
+    await get().refreshAccount();
   },
 
-  // Update position prices and check exits — called on each price update
-  updatePrices: (priceMap) => {
-    const state = get();
-    if (state.positions.length === 0) return;
+  // ── Close a real position ──
 
-    const cfg = state.config;
-    let equityDelta = 0;
-    const remaining = [];
-    const closed = [];
+  closePosition: async (instId, posSide) => {
+    const state = get();
+    if (!state.creds) return;
+    try {
+      const res = await fetch('/api/trade/close', {
+        method: 'POST',
+        headers: tradeHeaders(state.creds),
+        body: JSON.stringify({ instId, posSide }),
+      });
+      const j = await res.json();
+      if (!res.ok || j.error) throw new Error(j.error);
+
+      // Record in history
+      const pos = state.positions.find((p) => p.instId === instId && p.side === posSide);
+      if (pos) {
+        set((s) => ({
+          history: [{
+            ...pos,
+            reason: 'Manual Close',
+            pnl: pos.pnl,
+            pnlPct: pos.pnlPct,
+            timestamp: Date.now(),
+          }, ...s.history].slice(0, 200),
+        }));
+      }
+      await get().refreshAccount();
+    } catch (e) {
+      console.error('Close position error:', e.message);
+    }
+  },
+
+  // ── Check exits (stop loss / take profit) on real positions ──
+
+  checkExits: async (results) => {
+    const state = get();
+    if (!state.running || !state.creds || state.positions.length === 0) return;
+
+    const priceMap = {};
+    for (const r of results) priceMap[r.symbol] = r.entry;
 
     for (const pos of state.positions) {
       const px = priceMap[pos.symbol];
-      if (px == null) { remaining.push(pos); continue; }
+      if (!px) continue;
 
-      pos.currentPrice = px;
-      const pnlMult = pos.side === 'long' ? (px - pos.entry) / pos.entry : (pos.entry - px) / pos.entry;
-      pos.pnl = pos.size * pos.entry * pnlMult;
-      pos.pnlPct = pnlMult * 100;
-
-      // Update trailing stop
-      if (cfg.trailingStop && pos.trailingStop != null) {
-        const trailDist = pos.atr * cfg.trailingATR;
-        if (pos.side === 'long') {
-          pos.trailingStop = Math.max(pos.trailingStop, px - trailDist);
-        } else {
-          pos.trailingStop = Math.min(pos.trailingStop, px + trailDist);
-        }
-      }
-
+      const cfg = state.config;
       let shouldClose = false;
-      let reason = '';
+      const atr = pos.entry * 0.01;
 
-      // Check stop loss (or trailing stop)
-      const effectiveSL = cfg.trailingStop && pos.trailingStop != null ? pos.trailingStop : pos.stopLoss;
-      if (pos.side === 'long' && px <= effectiveSL) {
-        shouldClose = true;
-        reason = effectiveSL === pos.trailingStop ? 'Trailing Stop' : 'Stop Loss';
-      } else if (pos.side === 'short' && px >= effectiveSL) {
-        shouldClose = true;
-        reason = effectiveSL === pos.trailingStop ? 'Trailing Stop' : 'Stop Loss';
-      }
+      // Check stop loss
+      const slPrice = pos.side === 'long'
+        ? pos.entry - atr * cfg.stopLossMultiplier
+        : pos.entry + atr * cfg.stopLossMultiplier;
 
-      // Check take profits (sequential)
-      if (!shouldClose && pos.takeProfits && pos.takeProfits.length > 0) {
-        for (let i = pos.tpHit; i < pos.takeProfits.length; i++) {
-          const tp = pos.takeProfits[i];
-          if ((pos.side === 'long' && px >= tp) || (pos.side === 'short' && px <= tp)) {
-            pos.tpHit = i + 1;
-            if (i === pos.takeProfits.length - 1) {
-              shouldClose = true;
-              reason = `TP${i + 1} Hit`;
-            }
-            // Partial close: realize 1/3 of position at each TP
-            const partialSize = pos.size / pos.takeProfits.length;
-            const partialPnl = partialSize * pos.entry * pnlMult;
-            equityDelta += partialPnl;
-            pos.size -= partialSize;
-          }
-        }
-      }
+      if (pos.side === 'long' && px <= slPrice) shouldClose = true;
+      if (pos.side === 'short' && px >= slPrice) shouldClose = true;
+
+      // Check take profit (final TP at 3x ATR)
+      const tpPrice = pos.side === 'long'
+        ? pos.entry + atr * cfg.takeProfitPcts[cfg.takeProfitPcts.length - 1]
+        : pos.entry - atr * cfg.takeProfitPcts[cfg.takeProfitPcts.length - 1];
+
+      if (pos.side === 'long' && px >= tpPrice) shouldClose = true;
+      if (pos.side === 'short' && px <= tpPrice) shouldClose = true;
 
       if (shouldClose) {
-        equityDelta += pos.size * pos.entry * pnlMult;
-        closed.push({
-          ...pos,
-          exit: px,
-          pnl: pos.size * pos.entry * pnlMult + (pos.takeProfits ? (pos.size * pos.entry * pnlMult) : 0),
-          pnlPct: pnlMult * 100,
-          reason,
-          duration: Date.now() - pos.timestamp,
-        });
-      } else {
-        remaining.push(pos);
+        await get().closePosition(pos.instId, pos.side);
       }
     }
-
-    if (closed.length > 0 || equityDelta !== 0) {
-      set({
-        positions: remaining,
-        history: [...closed, ...state.history].slice(0, 200),
-        equity: state.equity + equityDelta,
-      });
-    }
   },
 
-  // Manually close a position
-  closePosition: (id, reason = 'Manual') => {
-    const state = get();
-    const pos = state.positions.find((p) => p.id === id);
-    if (!pos) return;
-    const pnlMult = pos.side === 'long'
-      ? (pos.currentPrice - pos.entry) / pos.entry
-      : (pos.entry - pos.currentPrice) / pos.entry;
-    const pnl = pos.size * pos.entry * pnlMult;
-    set({
-      positions: state.positions.filter((p) => p.id !== id),
-      history: [{ ...pos, exit: pos.currentPrice, pnl, pnlPct: pnlMult * 100, reason, duration: Date.now() - pos.timestamp }, ...state.history].slice(0, 200),
-      equity: state.equity + pnl,
-    });
-  },
-
-  // Get stats
+  // ── Get stats ──
   getStats: () => {
     const state = get();
-    const trades = state.history;
+    const trades = state.history.filter((t) => t.reason !== 'Opened');
     const wins = trades.filter((t) => t.pnl > 0);
     const losses = trades.filter((t) => t.pnl <= 0);
     const totalPnl = state.equity - state.startingEquity;
@@ -235,8 +340,9 @@ export const useAutoTradeStore = create((set, get) => ({
       winRate: trades.length > 0 ? (wins.length / trades.length) * 100 : 0,
       totalPnl,
       openPnl,
-      totalEquity: state.equity + openPnl,
-      roi: (totalPnl / state.startingEquity) * 100,
+      totalEquity: state.equity,
+      availableBalance: state.availableBalance,
+      roi: state.startingEquity > 0 ? (totalPnl / state.startingEquity) * 100 : 0,
       bestTrade: trades.reduce((best, t) => t.pnl > (best?.pnl || -Infinity) ? t : best, null),
       worstTrade: trades.reduce((worst, t) => t.pnl < (worst?.pnl || Infinity) ? t : worst, null),
     };
