@@ -10,14 +10,12 @@ import {
 
 const router: IRouter = Router();
 
-function extractCreds(req: any): OKXCredentials {
+function extractCreds(req: any): OKXCredentials | null {
   const apiKey = req.headers["x-okx-key"] as string;
   const secretKey = req.headers["x-okx-secret"] as string;
   const passphrase = req.headers["x-okx-pass"] as string;
   const demo = req.headers["x-okx-demo"] === "1";
-  if (!apiKey || !secretKey || !passphrase) {
-    throw new Error("Missing OKX API credentials. Provide x-okx-key, x-okx-secret, x-okx-pass headers.");
-  }
+  if (!apiKey || !secretKey || !passphrase) return null;
   return { apiKey, secretKey, passphrase, demo };
 }
 
@@ -32,6 +30,7 @@ function asyncHandler(fn: (req: any, res: any) => Promise<any>) {
 // Test connection — validates credentials and returns balance
 router.post("/trade/connect", asyncHandler(async (req, res) => {
   const creds = extractCreds(req);
+  if (!creds) { res.status(401).json({ error: "Missing OKX API credentials" }); return; }
   const balance = await getBalance(creds);
   // Set position mode to long/short for auto-trading
   try { await setPositionMode(creds, "long_short_mode"); } catch {}
@@ -41,6 +40,7 @@ router.post("/trade/connect", asyncHandler(async (req, res) => {
 // Get account balance
 router.get("/trade/balance", asyncHandler(async (req, res) => {
   const creds = extractCreds(req);
+  if (!creds) { res.status(401).json({ error: "Missing OKX API credentials" }); return; }
   const balance = await getBalance(creds);
   res.json(balance);
 }));
@@ -48,6 +48,7 @@ router.get("/trade/balance", asyncHandler(async (req, res) => {
 // Get open positions
 router.get("/trade/positions", asyncHandler(async (req, res) => {
   const creds = extractCreds(req);
+  if (!creds) { res.status(401).json({ error: "Missing OKX API credentials" }); return; }
   const positions = await getPositions(creds);
   res.json({ positions });
 }));
@@ -55,6 +56,7 @@ router.get("/trade/positions", asyncHandler(async (req, res) => {
 // Place a market order (open position)
 router.post("/trade/open", asyncHandler(async (req, res) => {
   const creds = extractCreds(req);
+  if (!creds) { res.status(401).json({ error: "Missing OKX API credentials" }); return; }
   const { symbol, side, usdtAmount, leverage, tpPrice, slPrice } = req.body;
   if (!symbol || !side || !usdtAmount) throw new Error("Missing symbol, side, or usdtAmount");
 
@@ -122,6 +124,7 @@ router.post("/trade/open", asyncHandler(async (req, res) => {
 // Close a position
 router.post("/trade/close", asyncHandler(async (req, res) => {
   const creds = extractCreds(req);
+  if (!creds) { res.status(401).json({ error: "Missing OKX API credentials" }); return; }
   const { instId, posSide } = req.body;
   if (!instId || !posSide) throw new Error("Missing instId or posSide");
 
